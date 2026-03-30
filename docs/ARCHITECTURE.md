@@ -42,6 +42,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 
 ### Operacion
 - Unidades
+- Documentos por unidad
 - Vencimientos
 - Planes de mantenimiento
 - Servicios realizados

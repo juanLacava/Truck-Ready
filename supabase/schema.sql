@@ -83,6 +83,23 @@ create table if not exists public.vehicles (
   constraint vehicles_status_check check (status in ('active', 'maintenance', 'inactive'))
 );
 
+create table if not exists public.vehicle_documents (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
+  title text not null,
+  document_type text not null default 'custom',
+  language text not null default 'bilingual',
+  file_url text,
+  expires_at date,
+  status text not null default 'active',
+  notes text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint vehicle_documents_language_check check (language in ('es', 'en', 'bilingual')),
+  constraint vehicle_documents_status_check check (status in ('active', 'archived'))
+);
+
 create table if not exists public.expiration_items (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -138,6 +155,9 @@ create table if not exists public.service_records (
 
 create index if not exists idx_company_members_profile_id on public.company_members(profile_id);
 create index if not exists idx_vehicles_company_id on public.vehicles(company_id);
+create index if not exists idx_vehicle_documents_company_id on public.vehicle_documents(company_id);
+create index if not exists idx_vehicle_documents_vehicle_id on public.vehicle_documents(vehicle_id);
+create index if not exists idx_vehicle_documents_expires_at on public.vehicle_documents(expires_at);
 create index if not exists idx_expiration_items_company_id on public.expiration_items(company_id);
 create index if not exists idx_expiration_items_vehicle_id on public.expiration_items(vehicle_id);
 create index if not exists idx_expiration_items_due_date on public.expiration_items(due_date);
@@ -171,6 +191,11 @@ create trigger vehicles_set_updated_at
 before update on public.vehicles
 for each row execute function public.set_updated_at();
 
+drop trigger if exists vehicle_documents_set_updated_at on public.vehicle_documents;
+create trigger vehicle_documents_set_updated_at
+before update on public.vehicle_documents
+for each row execute function public.set_updated_at();
+
 drop trigger if exists expiration_items_set_updated_at on public.expiration_items;
 create trigger expiration_items_set_updated_at
 before update on public.expiration_items
@@ -196,6 +221,7 @@ alter table public.profiles enable row level security;
 alter table public.founder_leads enable row level security;
 alter table public.company_members enable row level security;
 alter table public.vehicles enable row level security;
+alter table public.vehicle_documents enable row level security;
 alter table public.expiration_items enable row level security;
 alter table public.maintenance_plans enable row level security;
 alter table public.service_records enable row level security;
@@ -273,6 +299,13 @@ with check (public.is_company_member(id));
 drop policy if exists "vehicles_all_member_company" on public.vehicles;
 create policy "vehicles_all_member_company"
 on public.vehicles
+for all
+using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
+
+drop policy if exists "vehicle_documents_all_member_company" on public.vehicle_documents;
+create policy "vehicle_documents_all_member_company"
+on public.vehicle_documents
 for all
 using (public.is_company_member(company_id))
 with check (public.is_company_member(company_id));

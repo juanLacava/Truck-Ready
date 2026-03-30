@@ -12,7 +12,7 @@
 ## Fase 2. Nucleo operativo
 - [x] Implementar tabla y CRUD de unidades
 - [x] Implementar tabla y CRUD base de vencimientos
-- [ ] Implementar tabla y CRUD de documentos
+- [x] Implementar tabla y CRUD base de documentos
 - [x] Implementar tabla y CRUD base de planes de mantenimiento
 - [ ] Implementar calculos de proximos vencimientos
 - [ ] Implementar calculos de proximos mantenimientos
@@ -27,7 +27,7 @@
 
 ## Fase 4. Dashboard y alertas
 - [x] Implementar dashboard con tarjetas resumen
-- [ ] Implementar listados de pendientes
+- [x] Implementar listados de pendientes
 - [ ] Implementar alertas dentro del sistema
 - [ ] Implementar envio de email opcional
 - [ ] Implementar alertas de compliance

@@ -159,6 +159,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_documents: {
+        Row: {
+          id: string;
+          company_id: string;
+          vehicle_id: string;
+          title: string;
+          document_type: string;
+          language: "es" | "en" | "bilingual";
+          file_url: string | null;
+          expires_at: string | null;
+          status: "active" | "archived";
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          vehicle_id: string;
+          title: string;
+          document_type?: string;
+          language?: "es" | "en" | "bilingual";
+          file_url?: string | null;
+          expires_at?: string | null;
+          status?: "active" | "archived";
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          vehicle_id?: string;
+          title?: string;
+          document_type?: string;
+          language?: "es" | "en" | "bilingual";
+          file_url?: string | null;
+          expires_at?: string | null;
+          status?: "active" | "archived";
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       expiration_items: {
         Row: {
           id: string;

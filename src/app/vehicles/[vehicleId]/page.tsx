@@ -40,6 +40,14 @@ type MaintenancePlan = {
   status: "active" | "paused" | "archived";
 };
 
+type VehicleDocument = {
+  id: string;
+  title: string;
+  expires_at: string | null;
+  language: "es" | "en" | "bilingual";
+  status: "active" | "archived";
+};
+
 type ServiceRecord = {
   id: string;
   service_date: string;
@@ -93,6 +101,7 @@ export default function VehicleDetailPage({
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [expirations, setExpirations] = useState<ExpirationItem[]>([]);
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
+  const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,6 +144,7 @@ export default function VehicleDetailPage({
           { data: vehicleData, error: vehicleError },
           { data: expirationsData, error: expirationsError },
           { data: plansData, error: plansError },
+          { data: documentsData, error: documentsError },
           { data: servicesData, error: servicesError },
         ] = await Promise.all([
           supabase
@@ -163,6 +173,14 @@ export default function VehicleDetailPage({
             .order("created_at", { ascending: false })
             .returns<MaintenancePlan[]>(),
           supabase
+            .from("vehicle_documents")
+            .select("id, title, expires_at, language, status")
+            .eq("company_id", membership.company_id)
+            .eq("vehicle_id", currentVehicleId)
+            .neq("status", "archived")
+            .order("expires_at", { ascending: false, nullsFirst: false })
+            .returns<VehicleDocument[]>(),
+          supabase
             .from("service_records")
             .select("id, service_date, service_type, odometer, cost, notes")
             .eq("company_id", membership.company_id)
@@ -184,6 +202,10 @@ export default function VehicleDetailPage({
           throw plansError;
         }
 
+        if (documentsError) {
+          throw documentsError;
+        }
+
         if (servicesError) {
           throw servicesError;
         }
@@ -200,6 +222,7 @@ export default function VehicleDetailPage({
         setVehicle(vehicleData);
         setExpirations(expirationsData ?? []);
         setPlans(plansData ?? []);
+        setDocuments(documentsData ?? []);
         setServices(servicesData ?? []);
       } catch (loadError) {
         const detail =
@@ -279,10 +302,20 @@ export default function VehicleDetailPage({
             ? "Proximo servicio programado"
             : `Siguiente objetivo: ${plan.next_due_odometer?.toLocaleString("en-US") ?? "-"} mi`,
       })),
+    ...documents
+      .filter((document) => document.expires_at)
+      .map((document) => ({
+        id: `document-${document.id}`,
+        date: document.expires_at!,
+        title: document.title,
+        type: "expiration" as const,
+        detail: `Documento ${document.language} por revisar`,
+      })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const activeExpirations = expirations.filter((item) => item.status === "active");
   const activePlans = plans.filter((plan) => plan.status === "active");
+  const activeDocuments = documents.filter((document) => document.status === "active");
 
   return (
     <DashboardLayout
@@ -332,6 +365,9 @@ export default function VehicleDetailPage({
                 {plans.length} planes de mantenimiento
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                {documents.length} documentos
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 {services.length} servicios realizados
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
@@ -359,7 +395,20 @@ export default function VehicleDetailPage({
                   </div>
                 </div>
               ))}
-              {activeExpirations.length === 0 && activePlans.length === 0 ? (
+              {activeDocuments
+                .filter((document) => document.expires_at)
+                .slice(0, 2)
+                .map((document) => (
+                  <div key={document.id} className="rounded-2xl bg-sky-50 px-4 py-3 text-sm text-slate-700">
+                    <div className="font-medium text-slate-900">{document.title}</div>
+                    <div className="text-xs text-slate-500">
+                      {document.expires_at ? `Documento vence el ${formatDate(document.expires_at)}` : "Sin vencimiento"}
+                    </div>
+                  </div>
+                ))}
+              {activeExpirations.length === 0 &&
+              activePlans.length === 0 &&
+              activeDocuments.length === 0 ? (
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
                   Esta unidad no tiene pendientes activos.
                 </div>
