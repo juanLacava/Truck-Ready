@@ -12,6 +12,7 @@ import {
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type AlertSetting = {
   company_id: string;
@@ -109,20 +110,28 @@ async function sendWithResend(to: string, subject: string, html: string, text: s
   };
 }
 
-export async function POST(request: NextRequest) {
+function isAuthorized(request: NextRequest) {
   const configuredSecret = process.env.ALERTS_CRON_SECRET;
+  const bearerToken = request.headers
+    .get("authorization")
+    ?.replace(/^Bearer\s+/i, "")
+    .trim();
   const requestSecret = request.headers.get("x-alerts-secret");
 
-  if (!configuredSecret || requestSecret !== configuredSecret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!configuredSecret) {
+    return false;
   }
 
-  const body = (await request.json().catch(() => ({}))) as {
-    companyId?: string;
-    dryRun?: boolean;
-  };
+  return bearerToken === configuredSecret || requestSecret === configuredSecret;
+}
 
-  const dryRun = body.dryRun ?? false;
+async function processEmailAlerts({
+  companyId,
+  dryRun,
+}: {
+  companyId?: string;
+  dryRun: boolean;
+}) {
   const supabase = getSupabaseAdminClient();
 
   let settingsQuery = supabase
@@ -133,8 +142,8 @@ export async function POST(request: NextRequest) {
     .eq("email_enabled", true)
     .not("recipient_email", "is", null);
 
-  if (body.companyId) {
-    settingsQuery = settingsQuery.eq("company_id", body.companyId);
+  if (companyId) {
+    settingsQuery = settingsQuery.eq("company_id", companyId);
   }
 
   const { data: settings, error: settingsError } = await settingsQuery.returns<AlertSetting[]>();
@@ -318,5 +327,35 @@ export async function POST(request: NextRequest) {
     ok: true,
     companies: deliveries.length,
     deliveries,
+  });
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as {
+    companyId?: string;
+    dryRun?: boolean;
+  };
+
+  return processEmailAlerts({
+    companyId: body.companyId,
+    dryRun: body.dryRun ?? false,
+  });
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const companyId = request.nextUrl.searchParams.get("companyId") ?? undefined;
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "true";
+
+  return processEmailAlerts({
+    companyId,
+    dryRun,
   });
 }

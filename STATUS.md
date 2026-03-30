@@ -1,7 +1,7 @@
 # Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 17:40 -03
+Ultima actualizacion: 2026-03-30 18:05 -03
 
 ## Resumen
 Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
@@ -64,6 +64,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Dashboard operativo con datos reales basicos
 - Dashboard operativo con centro de alertas unificado
 - Modulo de alertas operativo con configuracion de resumen diario por email
+- Endpoint de alertas compatible con disparo manual y Vercel Cron
 - Modulo de unidades operativo con alta y listado real
 - Modulo de vencimientos operativo con alta y listado real
 - Modulo de mantenimiento operativo con alta y listado real
@@ -90,6 +91,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 ### Notificaciones
 - Alertas dentro del sistema en la V1 mediante centro de alertas en dashboard
 - Email opcional preparado con configuracion por empresa y endpoint server-side
+- Cron diario definido para despliegue en Vercel
 
 ### Despliegue
 - Frontend en Vercel
@@ -328,6 +330,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Modulo de documentos conectado con vencimiento por fecha
 - Dashboard consolidado con alertas de documentos, vencimientos y mantenimiento
 - Modulo de alertas por email con preferencias por empresa y endpoint inicial
+- Compatibilidad agregada para `GET/POST` autenticado por secret y cron diario
 - Historial por unidad consolidado
 - Variables de entorno corregidas para cliente Next.js
 - Politicas RLS corregidas para alta inicial de empresa
@@ -336,7 +339,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - La siguiente fase tecnica prioritaria pasa a ser `alertas externas + compliance`
 
 ## Proximos pasos
-1. Conectar Resend y programar el cron diario real
+1. Cargar env vars reales en Vercel y probar envio real con Resend
 2. Profundizar compliance con checklists y vencimientos regulatorios
 3. Mejorar exportacion e historial profesional para seguros
 4. Revisar UX de formularios, estados vacios y datos demo

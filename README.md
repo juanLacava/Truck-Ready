@@ -45,6 +45,28 @@ RESEND_API_KEY=
 ALERTS_FROM_EMAIL=
 ```
 
+## Alertas por email
+1. Configura las preferencias desde `/alerts`
+2. Define `ALERTS_CRON_SECRET` tambien en Vercel como `CRON_SECRET` si vas a usar Vercel Cron
+3. Sube `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` y `ALERTS_FROM_EMAIL`
+4. El cron diario queda definido en `vercel.json` hacia `/api/alerts/email`
+
+### Prueba manual en dry run
+```bash
+curl -X POST http://localhost:3000/api/alerts/email \
+  -H "x-alerts-secret: TU_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"dryRun":true}'
+```
+
+### Disparo manual real
+```bash
+curl -X POST https://tu-dominio.com/api/alerts/email \
+  -H "x-alerts-secret: TU_SECRET" \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
 ## Alcance V1
 - Autenticacion
 - Empresas
