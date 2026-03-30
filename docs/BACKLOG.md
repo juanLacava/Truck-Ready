@@ -30,7 +30,7 @@
 - [x] Implementar listados de pendientes
 - [x] Implementar alertas dentro del sistema
 - [x] Implementar envio de email opcional
-- [ ] Implementar alertas de compliance
+- [x] Implementar alertas de compliance
 
 ## Fase 5. Calidad y salida
 - [ ] Cargar datos demo

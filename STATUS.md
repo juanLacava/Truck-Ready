@@ -1,7 +1,7 @@
 # Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 18:25 -03
+Ultima actualizacion: 2026-03-30 18:40 -03
 
 ## Resumen
 Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
@@ -48,6 +48,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Dashboard
 - Alertas basicas
 - Configuracion base de alertas por email
+- Checklists DOT bilingues
 - Landing comercial con captura de leads
 
 ## Stack propuesto
@@ -66,6 +67,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Dashboard operativo con centro de alertas unificado
 - Modulo de alertas operativo con configuracion de resumen diario por email
 - Endpoint de alertas compatible con disparo manual y Vercel Cron
+- Modulo de compliance operativo con checklist DOT bilingue imprimible
 - Modulo de unidades operativo con alta y listado real
 - Modulo de vencimientos operativo con alta y listado real
 - Modulo de mantenimiento operativo con alta y listado real
@@ -145,7 +147,12 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Configuracion de resumen diario por email
 - Endpoint listo para disparo desde cron
 - Base preparada para Resend
-### 9. Landing y captura comercial
+
+### 9. Compliance
+- Checklist DOT bilingue listo para pantalla e impresion
+- Paquete sugerido de respaldo para inspeccion
+
+### 10. Landing y captura comercial
 - Landing orientada a owner-operators hispanos
 - Formulario de Operadores Fundadores conectado a Supabase
 
@@ -343,7 +350,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 
 ## Proximos pasos
 1. Cargar env vars reales en Vercel y probar envio real con Resend
-2. Profundizar compliance con checklists y vencimientos regulatorios
+2. Profundizar compliance con vencimientos regulatorios y checklists por tipo de operacion
 3. Mejorar exportacion e historial profesional para seguros
 4. Revisar UX de formularios, estados vacios y datos demo
 5. Preparar deploy inicial y validacion con Operadores Fundadores

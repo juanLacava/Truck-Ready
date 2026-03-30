@@ -49,6 +49,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 - Historial
 - Documentos por unidad y chofer
 - Checklists bilingues
+- Compliance DOT imprimible
 
 ### Visibilidad
 - Dashboard
@@ -76,7 +77,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 - Costos y reportes
 - Seguimiento para talleres y lubricentros
 - Exportacion PDF
-- Checklists DOT bilingues
+- Checklists DOT por tipo de operacion y carga
 - Vencimientos de compliance federal y estatal
 
 ### V3
