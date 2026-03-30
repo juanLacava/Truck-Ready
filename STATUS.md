@@ -1,7 +1,7 @@
 # Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 18:05 -03
+Ultima actualizacion: 2026-03-30 18:25 -03
 
 ## Resumen
 Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
@@ -44,6 +44,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Planes de mantenimiento preventivo
 - Registro de servicios
 - Historial por unidad
+- Reporte exportable por unidad
 - Dashboard
 - Alertas basicas
 - Configuracion base de alertas por email
@@ -71,6 +72,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Modulo de servicios operativo con alta y listado real
 - Modulo de documentos operativo con alta y listado real
 - Historial por unidad operativo con vista consolidada
+- Reporte exportable por unidad operativo para PDF/seguros
 - Landing comercial operativa con formulario de Operadores Fundadores
 - Estrategia del producto ajustada a ROI inmediato, no solo orden operativo
 
@@ -130,6 +132,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 ### 6. Historial por unidad
 - Vista cronologica de servicios y vencimientos
 - Resumen consolidado de documentos, mantenimientos y pendientes por unidad
+- Reporte imprimible en ingles para exportar a PDF desde navegador
 
 ### 7. Dashboard
 - Proximos vencimientos
@@ -357,6 +360,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - [x] Implementar modulo de mantenimiento preventivo
 - [x] Implementar dashboard
 - [x] Implementar historial por unidad
+- [x] Implementar reporte exportable por unidad
 - [x] Implementar landing comercial
 - [x] Preparar alertas por email
 - [ ] Cargar datos demo

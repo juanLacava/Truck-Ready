@@ -55,6 +55,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 - Listados con filtros
 - Estados proximos, vencidos y al dia
 - Centro de alertas con prioridad por severidad
+- Reportes imprimibles por unidad para exportacion PDF
 
 ## Seguridad
 - Todo registro operativo pertenece a una empresa

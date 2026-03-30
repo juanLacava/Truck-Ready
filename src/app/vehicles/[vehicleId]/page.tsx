@@ -323,9 +323,17 @@ export default function VehicleDetailPage({
       description="Resumen operativo y cronologia consolidada de la unidad."
     >
       <div className="mb-6">
-        <Link href="/vehicles" className="text-sm text-brand-800 underline">
-          Volver a unidades
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <Link href="/vehicles" className="text-sm text-brand-800 underline">
+            Volver a unidades
+          </Link>
+          <Link
+            href={`/vehicles/${vehicle.id}/report`}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"
+          >
+            Exportar reporte
+          </Link>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-4">

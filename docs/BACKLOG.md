@@ -39,6 +39,7 @@
 - [ ] Deploy inicial
 - [x] Landing simple
 - [x] Definir mensaje comercial para owner-operators hispanos
+- [x] Implementar reporte exportable por unidad
 
 ## Bloqueos posibles del usuario
 - Cuenta de Supabase
