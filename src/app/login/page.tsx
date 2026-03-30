@@ -10,7 +10,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-6 py-10">
       <AuthCard
         title="Ingresar"
-        description="Acceso para empresas que ya usan Flota al Dia."
+        description="Acceso para empresas que ya usan Truck Ready."
       >
         <AuthForm mode="login" />
       </AuthCard>

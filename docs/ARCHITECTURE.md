@@ -1,7 +1,7 @@
 # Arquitectura MVP
 
 ## Objetivo
-Construir un SaaS web simple para control de mantenimiento preventivo y vencimientos de unidades, orientado a empresas hispanas con flotillas pequenas en Estados Unidos.
+Construir Truck Ready como un SaaS web simple para control de mantenimiento preventivo y vencimientos de unidades, orientado a empresas hispanas con pequenas flotas en Estados Unidos.
 El objetivo comercial ya no es solo orden operativo: es reducir friccion de compliance, documentacion y riesgo ante inspecciones y aseguradoras.
 
 ## Principios

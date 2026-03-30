@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Flota al Dia",
-  description: "Control de mantenimiento y vencimientos para flotillas pequenas.",
+  title: "Truck Ready",
+  description: "Control de mantenimiento y vencimientos para transportistas y pequenas flotas.",
 };
 
 export default function RootLayout({

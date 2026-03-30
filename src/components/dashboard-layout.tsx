@@ -10,6 +10,7 @@ const navItems = [
   { href: "/vehicles", label: "Unidades" },
   { href: "/expirations", label: "Vencimientos" },
   { href: "/maintenance", label: "Mantenimiento" },
+  { href: "/services", label: "Servicios" },
 ];
 
 type Membership = {
@@ -118,7 +119,7 @@ export function DashboardLayout({
       <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[240px_1fr]">
         <aside className="border-b border-slate-200 bg-brand-900 px-6 py-8 text-brand-50 lg:border-b-0 lg:border-r lg:border-brand-800">
           <Link href="/" className="text-xl font-semibold tracking-tight">
-            Flota al Dia
+            Truck Ready
           </Link>
           <p className="mt-2 text-sm text-brand-100">
             {companyName ?? "Flotilla sin configurar"}

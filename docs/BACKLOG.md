@@ -19,10 +19,10 @@
 - [ ] Implementar estados: al dia, proximo, vencido
 
 ## Fase 3. Historial y seguimiento
-- [ ] Implementar tabla y CRUD de servicios realizados
-- [ ] Relacionar servicios con planes de mantenimiento
-- [ ] Actualizar planes tras registrar un servicio
-- [ ] Implementar historial por unidad
+- [x] Implementar tabla y CRUD base de servicios realizados
+- [x] Relacionar servicios con planes de mantenimiento
+- [x] Actualizar planes tras registrar un servicio
+- [x] Implementar historial por unidad
 - [ ] Mostrar resumen por unidad
 
 ## Fase 4. Dashboard y alertas

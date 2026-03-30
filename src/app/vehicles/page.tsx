@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -107,7 +108,7 @@ export default function VehiclesPage() {
   return (
     <DashboardLayout
       title="Unidades"
-      description="Modulo inicial conectado a Supabase para administrar las unidades de cada empresa."
+      description="Modulo conectado a Supabase para administrar unidades y abrir el historial operativo de cada una."
     >
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm">
@@ -144,9 +145,18 @@ export default function VehiclesPage() {
                 vehicles.map((vehicle) => (
                   <tr key={vehicle.id}>
                     <td className="px-4 py-3 text-slate-900">
-                      {vehicle.internal_code ?? "-"}
+                      <Link
+                        href={`/vehicles/${vehicle.id}`}
+                        className="font-medium text-brand-800 underline"
+                      >
+                        {vehicle.internal_code ?? "-"}
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{vehicle.plate}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      <Link href={`/vehicles/${vehicle.id}`} className="hover:text-brand-800">
+                        {vehicle.plate}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-slate-700">
                       {[vehicle.brand, vehicle.model, vehicle.year]
                         .filter(Boolean)

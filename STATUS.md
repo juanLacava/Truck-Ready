@@ -1,11 +1,11 @@
-# Flota al Dia
+# Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 14:21 -03
+Ultima actualizacion: 2026-03-30 14:43 -03
 
 ## Resumen
-Micro-SaaS para control de mantenimiento preventivo y vencimientos de flotillas pequenas, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
-Micro-SaaS para control de mantenimiento preventivo y vencimientos de flotillas pequenas, con foco comercial en empresas hispanas en Estados Unidos.
+Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
+Truck Ready mantiene foco comercial en empresas hispanas en Estados Unidos.
 
 ## Objetivo
 Construir un MVP simple y vendible que permita:
@@ -63,6 +63,8 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Modulo de unidades operativo con alta y listado real
 - Modulo de vencimientos operativo con alta y listado real
 - Modulo de mantenimiento operativo con alta y listado real
+- Modulo de servicios operativo con alta y listado real
+- Historial por unidad operativo con vista consolidada
 - Estrategia del producto ajustada a ROI inmediato, no solo orden operativo
 
 ## Arquitectura del MVP
