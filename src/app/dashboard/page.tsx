@@ -22,6 +22,7 @@ type DashboardState = {
   expirationCount: number;
   maintenanceCount: number;
   serviceCount: number;
+  alertCount: number;
   upcomingExpirations: Array<{
     id: string;
     title: string;
@@ -36,6 +37,16 @@ type DashboardState = {
     title: string;
     dueLabel: string;
     vehicleLabel: string;
+      detail: string;
+      stateLabel: string;
+      stateTone: string;
+  }>;
+  systemAlerts: Array<{
+    id: string;
+    title: string;
+    dueLabel: string;
+    vehicleLabel: string;
+    categoryLabel: string;
     detail: string;
     stateLabel: string;
     stateTone: string;
@@ -65,6 +76,17 @@ type DashboardMaintenance = {
     internal_code: string | null;
     plate: string;
     current_odometer: number;
+  } | null;
+};
+
+type DashboardDocument = {
+  id: string;
+  title: string;
+  expires_at: string | null;
+  status: "active" | "archived";
+  vehicles: {
+    internal_code: string | null;
+    plate: string;
   } | null;
 };
 
@@ -172,6 +194,49 @@ function getMaintenanceState(plan: DashboardMaintenance) {
   };
 }
 
+function getDocumentState(expiresAt: string | null) {
+  if (!expiresAt) {
+    return {
+      label: "Sin fecha",
+      tone: "bg-slate-100 text-slate-700",
+      detail: "Sin vencimiento cargado",
+    };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${expiresAt}T00:00:00`);
+  const diffDays = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+
+  if (diffDays < 0) {
+    return {
+      label: "Vencido",
+      tone: "bg-rose-100 text-rose-800",
+      detail: `${Math.abs(diffDays)} dias de atraso`,
+    };
+  }
+
+  if (diffDays <= 30) {
+    return {
+      label: "Proximo",
+      tone: "bg-amber-100 text-amber-800",
+      detail: diffDays === 0 ? "Vence hoy" : `Faltan ${diffDays} dias`,
+    };
+  }
+
+  return {
+    label: "Ready",
+    tone: "bg-emerald-100 text-emerald-800",
+    detail: `Faltan ${diffDays} dias`,
+  };
+}
+
+function getAlertPriority(label: string) {
+  if (label === "Vencido") return 0;
+  if (label === "Proximo") return 1;
+  return 2;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [state, setState] = useState<DashboardState | null>(null);
@@ -216,6 +281,7 @@ export default function DashboardPage() {
           { count: serviceCount, error: servicesError },
           { data: expirationsData, error: expirationListError },
           { data: maintenanceData, error: maintenanceListError },
+          { data: documentsData, error: documentListError },
         ] =
           await Promise.all([
             supabase
@@ -254,6 +320,14 @@ export default function DashboardPage() {
               .eq("company_id", membership.company_id)
               .eq("status", "active")
               .returns<DashboardMaintenance[]>(),
+            supabase
+              .from("vehicle_documents")
+              .select("id, title, expires_at, status, vehicles(internal_code, plate)")
+              .eq("company_id", membership.company_id)
+              .eq("status", "active")
+              .order("expires_at", { ascending: true, nullsFirst: false })
+              .limit(10)
+              .returns<DashboardDocument[]>(),
           ]);
 
         if (vehiclesError) throw vehiclesError;
@@ -262,6 +336,7 @@ export default function DashboardPage() {
         if (servicesError) throw servicesError;
         if (expirationListError) throw expirationListError;
         if (maintenanceListError) throw maintenanceListError;
+        if (documentListError) throw documentListError;
 
         if (!isMounted) {
           return;
@@ -319,14 +394,62 @@ export default function DashboardPage() {
           })
           .slice(0, 5);
 
+        const documentAlerts = (documentsData ?? [])
+          .map((item) => {
+            const state = getDocumentState(item.expires_at);
+
+            return {
+              id: item.id,
+              title: item.title,
+              dueLabel: item.expires_at
+                ? `Vence el ${formatDate(item.expires_at)}`
+                : "Sin vencimiento cargado",
+              vehicleLabel: item.vehicles?.internal_code || item.vehicles?.plate || "-",
+              categoryLabel: "Documento",
+              detail: state.detail,
+              stateLabel: state.label,
+              stateTone: state.tone,
+            };
+          })
+          .filter((item) => item.stateLabel === "Vencido" || item.stateLabel === "Proximo");
+
+        const expirationAlerts = upcomingExpirations.map((item) => ({
+          id: item.id,
+          title: item.title,
+          dueLabel: item.dueDate,
+          vehicleLabel: item.vehicleLabel,
+          categoryLabel: "Vencimiento",
+          detail: item.detail,
+          stateLabel: item.stateLabel,
+          stateTone: item.stateTone,
+        }));
+
+        const maintenanceAlerts = upcomingMaintenance.map((item) => ({
+          id: item.id,
+          title: item.title,
+          dueLabel: item.dueLabel,
+          vehicleLabel: item.vehicleLabel,
+          categoryLabel: "Mantenimiento",
+          detail: item.detail,
+          stateLabel: item.stateLabel,
+          stateTone: item.stateTone,
+        }));
+
+        const systemAlerts = [...expirationAlerts, ...maintenanceAlerts, ...documentAlerts]
+          .sort((a, b) => getAlertPriority(a.stateLabel) - getAlertPriority(b.stateLabel))
+          .slice(0, 6);
+
         setState({
           companyName: membership.companies?.name ?? "Tu empresa",
           vehicleCount: vehicleCount ?? 0,
           expirationCount: expirationCount ?? 0,
           maintenanceCount: maintenanceCount ?? 0,
           serviceCount: serviceCount ?? 0,
+          alertCount:
+            expirationAlerts.length + maintenanceAlerts.length + documentAlerts.length,
           upcomingExpirations,
           upcomingMaintenance,
+          systemAlerts,
         });
       } catch (loadError) {
         const detail =

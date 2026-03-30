@@ -1,7 +1,7 @@
 # Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 16:12 -03
+Ultima actualizacion: 2026-03-30 16:45 -03
 
 ## Resumen
 Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
@@ -46,6 +46,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Historial por unidad
 - Dashboard
 - Alertas basicas
+- Landing comercial con captura de leads
 
 ## Stack propuesto
 - Next.js
@@ -60,12 +61,14 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Login operativo
 - Onboarding de empresa operativo
 - Dashboard operativo con datos reales basicos
+- Dashboard operativo con centro de alertas unificado
 - Modulo de unidades operativo con alta y listado real
 - Modulo de vencimientos operativo con alta y listado real
 - Modulo de mantenimiento operativo con alta y listado real
 - Modulo de servicios operativo con alta y listado real
 - Modulo de documentos operativo con alta y listado real
 - Historial por unidad operativo con vista consolidada
+- Landing comercial operativa con formulario de Operadores Fundadores
 - Estrategia del producto ajustada a ROI inmediato, no solo orden operativo
 
 ## Arquitectura del MVP
@@ -83,7 +86,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Integracion actual resuelta mayormente desde cliente para simplificar el MVP y evitar complejidad temprana de SSR con cookies
 
 ### Notificaciones
-- Alertas dentro del sistema en la V1
+- Alertas dentro del sistema en la V1 mediante centro de alertas en dashboard
 - Email opcional con Resend en una etapa temprana posterior al nucleo
 
 ### Despliegue
@@ -122,12 +125,18 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 
 ### 6. Historial por unidad
 - Vista cronologica de servicios y vencimientos
+- Resumen consolidado de documentos, mantenimientos y pendientes por unidad
 
 ### 7. Dashboard
 - Proximos vencimientos
 - Mantenimientos proximos
 - Pendientes vencidos
-- Resumen por estado de unidades
+- Alertas unificadas de documentos, vencimientos y mantenimiento
+- Resumen por estado operativo
+
+### 8. Landing y captura comercial
+- Landing orientada a owner-operators hispanos
+- Formulario de Operadores Fundadores conectado a Supabase
 
 ## Roadmap estrategico sugerido
 ### Prioridad comercial inmediata
@@ -155,6 +164,8 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - `expiration_items`
 - `maintenance_plans`
 - `service_records`
+- `vehicle_documents`
+- `founder_leads`
 
 ### Tablas sugeridas y campos clave
 #### `companies`
@@ -242,11 +253,14 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Un vencimiento se considera proximo si entra en la ventana de alerta configurada
 - Un mantenimiento queda vencido si supera su fecha objetivo o kilometraje objetivo
 - Registrar un servicio puede actualizar el ultimo y proximo mantenimiento del plan asociado
+- Un documento se considera proximo si vence dentro de 30 dias
+- El dashboard prioriza alertas vencidas por encima de alertas proximas
 
 ## Vistas o calculos utiles
 - Unidades con alertas activas
 - Vencimientos en los proximos 7, 15 o 30 dias
 - Mantenimientos vencidos
+- Documentos proximos o vencidos
 - Proximo mantenimiento por unidad
 - Ultimos servicios registrados
 
@@ -272,6 +286,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Alertas
 - Datos demo
 - Deploy inicial
+- Email opcional
 
 ## Estado por area
 ### Producto
@@ -299,19 +314,23 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Supabase configurado con proyecto real
 - Registro, login y onboarding conectados
 - Modulo de unidades conectado para alta y listado
+- Modulo de vencimientos conectado con calculo de estados
+- Modulo de mantenimiento conectado con calculo de proximos servicios
+- Modulo de documentos conectado con vencimiento por fecha
+- Dashboard consolidado con alertas de documentos, vencimientos y mantenimiento
+- Historial por unidad consolidado
 - Variables de entorno corregidas para cliente Next.js
 - Politicas RLS corregidas para alta inicial de empresa
 - Funcion `is_company_member` corregida con `security definer`
 - Build y typecheck verificados despues de los fixes
-- La siguiente fase tecnica prioritaria pasa a ser `vencimientos + documentos`
+- La siguiente fase tecnica prioritaria pasa a ser `alertas externas + compliance`
 
 ## Proximos pasos
-1. Construir modulo real de vencimientos y alertas
-2. Agregar boveda de documentos por unidad
-3. Construir modulo real de mantenimiento preventivo
-4. Agregar historial de servicios y exportacion
-5. Reemplazar vistas demo restantes por datos reales
-6. Preparar flujo comercial para owner-operators hispanos
+1. Agregar alertas externas por email o WhatsApp
+2. Profundizar compliance con checklists y vencimientos regulatorios
+3. Mejorar exportacion e historial profesional para seguros
+4. Revisar UX de formularios, estados vacios y datos demo
+5. Preparar deploy inicial y validacion con Operadores Fundadores
 
 ## Backlog inicial
 - [x] Definir entidades y relaciones
@@ -320,10 +339,12 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - [x] Crear proyecto base
 - [x] Implementar autenticacion
 - [x] Implementar modulo de unidades
-- [ ] Implementar modulo de vencimientos
-- [ ] Implementar boveda de documentos
-- [ ] Implementar modulo de mantenimiento preventivo
+- [x] Implementar modulo de vencimientos
+- [x] Implementar boveda de documentos
+- [x] Implementar modulo de mantenimiento preventivo
 - [x] Implementar dashboard
+- [x] Implementar historial por unidad
+- [x] Implementar landing comercial
 - [ ] Cargar datos demo
 
 ## Decisiones tecnicas tomadas
@@ -334,7 +355,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Separacion de datos por empresa mediante RLS
 - Alta inicial de empresa resuelta con campo `created_by`
 - El producto se diferencia por compliance y defensa documental, no por amplitud funcional
-- La siguiente capa funcional prioritaria es `vencimientos + documentos`
+- La siguiente capa funcional prioritaria es `alertas externas + compliance`
 
 ## Insights de mercado incorporados
 - Las suites enterprise son demasiado complejas y caras para micro-flotas hispanas

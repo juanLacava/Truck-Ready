@@ -14,21 +14,21 @@
 - [x] Implementar tabla y CRUD base de vencimientos
 - [x] Implementar tabla y CRUD base de documentos
 - [x] Implementar tabla y CRUD base de planes de mantenimiento
-- [ ] Implementar calculos de proximos vencimientos
-- [ ] Implementar calculos de proximos mantenimientos
-- [ ] Implementar estados: al dia, proximo, vencido
+- [x] Implementar calculos de proximos vencimientos
+- [x] Implementar calculos de proximos mantenimientos
+- [x] Implementar estados: al dia, proximo, vencido
 
 ## Fase 3. Historial y seguimiento
 - [x] Implementar tabla y CRUD base de servicios realizados
 - [x] Relacionar servicios con planes de mantenimiento
 - [x] Actualizar planes tras registrar un servicio
 - [x] Implementar historial por unidad
-- [ ] Mostrar resumen por unidad
+- [x] Mostrar resumen por unidad
 
 ## Fase 4. Dashboard y alertas
 - [x] Implementar dashboard con tarjetas resumen
 - [x] Implementar listados de pendientes
-- [ ] Implementar alertas dentro del sistema
+- [x] Implementar alertas dentro del sistema
 - [ ] Implementar envio de email opcional
 - [ ] Implementar alertas de compliance
 
@@ -37,8 +37,8 @@
 - [ ] Revisar UX de formularios y tablas
 - [ ] Revisar estados vacios
 - [ ] Deploy inicial
-- [ ] Landing simple
-- [ ] Definir mensaje comercial para owner-operators hispanos
+- [x] Landing simple
+- [x] Definir mensaje comercial para owner-operators hispanos
 
 ## Bloqueos posibles del usuario
 - Cuenta de Supabase

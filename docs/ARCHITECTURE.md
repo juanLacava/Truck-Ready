@@ -54,6 +54,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 - Dashboard
 - Listados con filtros
 - Estados proximos, vencidos y al dia
+- Centro de alertas con prioridad por severidad
 
 ## Seguridad
 - Todo registro operativo pertenece a una empresa
@@ -63,7 +64,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 ## Evolucion prevista
 ### V1
 - Web app
-- Alertas en el panel
+- Alertas en el panel para vencimientos, mantenimiento y documentos
 - Email opcional simple
 - Boveda de documentos
 - Enfoque en owner-operators y micro-flotas
