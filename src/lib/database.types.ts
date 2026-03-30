@@ -87,6 +87,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      company_alert_settings: {
+        Row: {
+          company_id: string;
+          email_enabled: boolean;
+          recipient_email: string | null;
+          include_overdue: boolean;
+          include_upcoming: boolean;
+          upcoming_window_days: number;
+          last_sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          company_id: string;
+          email_enabled?: boolean;
+          recipient_email?: string | null;
+          include_overdue?: boolean;
+          include_upcoming?: boolean;
+          upcoming_window_days?: number;
+          last_sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          email_enabled?: boolean;
+          recipient_email?: string | null;
+          include_overdue?: boolean;
+          include_upcoming?: boolean;
+          upcoming_window_days?: number;
+          last_sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       company_members: {
         Row: {
           id: string;

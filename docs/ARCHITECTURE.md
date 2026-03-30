@@ -65,7 +65,7 @@ El objetivo comercial ya no es solo orden operativo: es reducir friccion de comp
 ### V1
 - Web app
 - Alertas en el panel para vencimientos, mantenimiento y documentos
-- Email opcional simple
+- Email opcional simple con configuracion por empresa y trigger server-side
 - Boveda de documentos
 - Enfoque en owner-operators y micro-flotas
 

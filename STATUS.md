@@ -1,7 +1,7 @@
 # Truck Ready
 
 Estado general: MVP base funcionando con Supabase
-Ultima actualizacion: 2026-03-30 16:45 -03
+Ultima actualizacion: 2026-03-30 17:40 -03
 
 ## Resumen
 Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, con foco inicial en transportistas pequenos y posibilidad de extenderlo a talleres y lubricentros.
@@ -46,6 +46,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Historial por unidad
 - Dashboard
 - Alertas basicas
+- Configuracion base de alertas por email
 - Landing comercial con captura de leads
 
 ## Stack propuesto
@@ -62,6 +63,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Onboarding de empresa operativo
 - Dashboard operativo con datos reales basicos
 - Dashboard operativo con centro de alertas unificado
+- Modulo de alertas operativo con configuracion de resumen diario por email
 - Modulo de unidades operativo con alta y listado real
 - Modulo de vencimientos operativo con alta y listado real
 - Modulo de mantenimiento operativo con alta y listado real
@@ -87,7 +89,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 
 ### Notificaciones
 - Alertas dentro del sistema en la V1 mediante centro de alertas en dashboard
-- Email opcional con Resend en una etapa temprana posterior al nucleo
+- Email opcional preparado con configuracion por empresa y endpoint server-side
 
 ### Despliegue
 - Frontend en Vercel
@@ -134,7 +136,11 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Alertas unificadas de documentos, vencimientos y mantenimiento
 - Resumen por estado operativo
 
-### 8. Landing y captura comercial
+### 8. Alertas externas
+- Configuracion de resumen diario por email
+- Endpoint listo para disparo desde cron
+- Base preparada para Resend
+### 9. Landing y captura comercial
 - Landing orientada a owner-operators hispanos
 - Formulario de Operadores Fundadores conectado a Supabase
 
@@ -165,6 +171,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - `maintenance_plans`
 - `service_records`
 - `vehicle_documents`
+- `company_alert_settings`
 - `founder_leads`
 
 ### Tablas sugeridas y campos clave
@@ -255,6 +262,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Registrar un servicio puede actualizar el ultimo y proximo mantenimiento del plan asociado
 - Un documento se considera proximo si vence dentro de 30 dias
 - El dashboard prioriza alertas vencidas por encima de alertas proximas
+- El resumen diario por email se configura a nivel empresa
 
 ## Vistas o calculos utiles
 - Unidades con alertas activas
@@ -263,6 +271,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Documentos proximos o vencidos
 - Proximo mantenimiento por unidad
 - Ultimos servicios registrados
+- Ultimo envio de alertas por empresa
 
 ## Fases de construccion sugeridas
 ### Fase 1
@@ -318,6 +327,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - Modulo de mantenimiento conectado con calculo de proximos servicios
 - Modulo de documentos conectado con vencimiento por fecha
 - Dashboard consolidado con alertas de documentos, vencimientos y mantenimiento
+- Modulo de alertas por email con preferencias por empresa y endpoint inicial
 - Historial por unidad consolidado
 - Variables de entorno corregidas para cliente Next.js
 - Politicas RLS corregidas para alta inicial de empresa
@@ -326,7 +336,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - La siguiente fase tecnica prioritaria pasa a ser `alertas externas + compliance`
 
 ## Proximos pasos
-1. Agregar alertas externas por email o WhatsApp
+1. Conectar Resend y programar el cron diario real
 2. Profundizar compliance con checklists y vencimientos regulatorios
 3. Mejorar exportacion e historial profesional para seguros
 4. Revisar UX de formularios, estados vacios y datos demo
@@ -345,6 +355,7 @@ Evita vencimientos, reduce paros y lleva el historial de cada unidad en un solo 
 - [x] Implementar dashboard
 - [x] Implementar historial por unidad
 - [x] Implementar landing comercial
+- [x] Preparar alertas por email
 - [ ] Cargar datos demo
 
 ## Decisiones tecnicas tomadas

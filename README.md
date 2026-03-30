@@ -32,11 +32,17 @@ Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimie
 
 ## Migraciones recientes
 - `supabase/migrations/20260330153000_founder_leads.sql`: crea la tabla `founder_leads` para capturar interesados de la landing `Operadores Fundadores`
+- `supabase/migrations/20260330161000_vehicle_documents.sql`: crea la tabla `vehicle_documents` para la boveda documental por unidad
+- `supabase/migrations/20260330174000_company_alert_settings.sql`: crea la tabla `company_alert_settings` para configurar alertas diarias por email
 
 ## Variables de entorno
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+ALERTS_CRON_SECRET=
+RESEND_API_KEY=
+ALERTS_FROM_EMAIL=
 ```
 
 ## Alcance V1
@@ -48,3 +54,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - Servicios realizados
 - Historial
 - Dashboard
+- Alertas por email configurables

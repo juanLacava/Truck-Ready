@@ -56,6 +56,19 @@ create table if not exists public.founder_leads (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.company_alert_settings (
+  company_id uuid primary key references public.companies(id) on delete cascade,
+  email_enabled boolean not null default false,
+  recipient_email text,
+  include_overdue boolean not null default true,
+  include_upcoming boolean not null default true,
+  upcoming_window_days integer not null default 15,
+  last_sent_at timestamptz,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint company_alert_settings_window_check check (upcoming_window_days between 1 and 30)
+);
+
 create table if not exists public.company_members (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -154,6 +167,7 @@ create table if not exists public.service_records (
 );
 
 create index if not exists idx_company_members_profile_id on public.company_members(profile_id);
+create index if not exists idx_company_alert_settings_email_enabled on public.company_alert_settings(email_enabled);
 create index if not exists idx_vehicles_company_id on public.vehicles(company_id);
 create index if not exists idx_vehicle_documents_company_id on public.vehicle_documents(company_id);
 create index if not exists idx_vehicle_documents_vehicle_id on public.vehicle_documents(vehicle_id);
@@ -179,6 +193,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists founder_leads_set_updated_at on public.founder_leads;
 create trigger founder_leads_set_updated_at
 before update on public.founder_leads
+for each row execute function public.set_updated_at();
+
+drop trigger if exists company_alert_settings_set_updated_at on public.company_alert_settings;
+create trigger company_alert_settings_set_updated_at
+before update on public.company_alert_settings
 for each row execute function public.set_updated_at();
 
 drop trigger if exists company_members_set_updated_at on public.company_members;
@@ -219,6 +238,7 @@ for each row execute function public.handle_new_user();
 alter table public.companies enable row level security;
 alter table public.profiles enable row level security;
 alter table public.founder_leads enable row level security;
+alter table public.company_alert_settings enable row level security;
 alter table public.company_members enable row level security;
 alter table public.vehicles enable row level security;
 alter table public.vehicle_documents enable row level security;
@@ -270,6 +290,13 @@ create policy "company_members_select_member_company"
 on public.company_members
 for select
 using (public.is_company_member(company_id));
+
+drop policy if exists "company_alert_settings_all_member_company" on public.company_alert_settings;
+create policy "company_alert_settings_all_member_company"
+on public.company_alert_settings
+for all
+using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
 
 drop policy if exists "company_members_insert_own_membership" on public.company_members;
 create policy "company_members_insert_own_membership"

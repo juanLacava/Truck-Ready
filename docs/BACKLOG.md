@@ -29,7 +29,7 @@
 - [x] Implementar dashboard con tarjetas resumen
 - [x] Implementar listados de pendientes
 - [x] Implementar alertas dentro del sistema
-- [ ] Implementar envio de email opcional
+- [x] Implementar envio de email opcional
 - [ ] Implementar alertas de compliance
 
 ## Fase 5. Calidad y salida
