@@ -46,6 +46,16 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.founder_leads (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  phone text not null,
+  fleet_size integer,
+  primary_concern text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.company_members (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -146,6 +156,11 @@ create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
+drop trigger if exists founder_leads_set_updated_at on public.founder_leads;
+create trigger founder_leads_set_updated_at
+before update on public.founder_leads
+for each row execute function public.set_updated_at();
+
 drop trigger if exists company_members_set_updated_at on public.company_members;
 create trigger company_members_set_updated_at
 before update on public.company_members
@@ -178,6 +193,7 @@ for each row execute function public.handle_new_user();
 
 alter table public.companies enable row level security;
 alter table public.profiles enable row level security;
+alter table public.founder_leads enable row level security;
 alter table public.company_members enable row level security;
 alter table public.vehicles enable row level security;
 alter table public.expiration_items enable row level security;
@@ -216,6 +232,12 @@ create policy "profiles_update_own"
 on public.profiles
 for update
 using (id = auth.uid());
+
+drop policy if exists "founder_leads_insert_public" on public.founder_leads;
+create policy "founder_leads_insert_public"
+on public.founder_leads
+for insert
+with check (true);
 
 drop policy if exists "company_members_select_member_company" on public.company_members;
 create policy "company_members_select_member_company"

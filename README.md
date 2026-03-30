@@ -1,6 +1,6 @@
-# Flota al Dia
+# Truck Ready
 
-Micro-SaaS para control de mantenimiento preventivo y vencimientos de flotillas pequenas, orientado al mercado hispano en Estados Unidos.
+Truck Ready es un micro-SaaS para control de mantenimiento preventivo y vencimientos, orientado a transportistas y pequenas flotas en Estados Unidos.
 
 ## Estado actual
 - Definicion de producto cerrada para la V1
@@ -27,7 +27,11 @@ Micro-SaaS para control de mantenimiento preventivo y vencimientos de flotillas 
 2. Copiar `.env.example` a `.env.local`
 3. Completar credenciales de Supabase
 4. Aplicar `supabase/schema.sql`
-5. Levantar el proyecto con `npm run dev`
+5. Si ya tienes una base creada, aplicar tambien las migraciones nuevas de `supabase/migrations/`
+6. Levantar el proyecto con `npm run dev`
+
+## Migraciones recientes
+- `supabase/migrations/20260330153000_founder_leads.sql`: crea la tabla `founder_leads` para capturar interesados de la landing `Operadores Fundadores`
 
 ## Variables de entorno
 ```bash

@@ -57,6 +57,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      founder_leads: {
+        Row: {
+          id: string;
+          full_name: string;
+          phone: string;
+          fleet_size: number | null;
+          primary_concern: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          phone: string;
+          fleet_size?: number | null;
+          primary_concern?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          phone?: string;
+          fleet_size?: number | null;
+          primary_concern?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       company_members: {
         Row: {
           id: string;
