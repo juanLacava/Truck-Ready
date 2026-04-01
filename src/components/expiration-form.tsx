@@ -24,9 +24,11 @@ const expirationTypes = [
 export function ExpirationForm({
   companyId,
   vehicles,
+  canEdit = true,
 }: {
   companyId: string;
   vehicles: VehicleOption[];
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [vehicleId, setVehicleId] = useState(vehicles[0]?.id ?? "");
@@ -40,6 +42,12 @@ export function ExpirationForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Solo owners y admins pueden crear vencimientos.");
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
 
@@ -94,38 +102,35 @@ export function ExpirationForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-4 rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm"
+      className="grid gap-6 rounded-[32px] border-2 border-slate-300 bg-white p-8 shadow-lg"
     >
-      <h2 className="text-lg font-semibold text-slate-900">Nuevo vencimiento</h2>
+      <h2 className="text-2xl font-black tracking-tighter text-slate-950 uppercase italic underline decoration-emerald-500 underline-offset-8">Nuevo vencimiento</h2>
 
-      <div className="grid gap-4">
+      <div className="mt-4 grid gap-5">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">Unidad</span>
+          <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">Unidad</span>
           <select
             value={vehicleId}
             onChange={(event) => setVehicleId(event.target.value)}
-            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500"
+            className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
             required
           >
             {vehicles.map((vehicle) => (
               <option key={vehicle.id} value={vehicle.id}>
                 {vehicle.internal_code || vehicle.plate}
                 {vehicle.internal_code ? ` · ${vehicle.plate}` : ""}
-                {vehicle.brand || vehicle.model
-                  ? ` · ${[vehicle.brand, vehicle.model].filter(Boolean).join(" ")}`
-                  : ""}
               </option>
             ))}
           </select>
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">Tipo</span>
+            <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">Tipo</span>
             <select
               value={type}
               onChange={(event) => setType(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500"
+              className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
               required
             >
               {expirationTypes.map((expirationType) => (
@@ -137,69 +142,77 @@ export function ExpirationForm({
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
+            <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">
               Vence el
             </span>
             <input
               type="date"
               value={dueDate}
               onChange={(event) => setDueDate(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-brand-500"
+              className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
               required
             />
           </label>
 
           <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
+            <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">
               Titulo visible
             </span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-brand-500"
+              className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
               placeholder="Seguro comercial, DOT anual, etc."
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Avisar antes
+            <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">
+              Avisar antes (dias)
             </span>
             <input
               type="number"
               min="0"
               value={alertDaysBefore}
               onChange={(event) => setAlertDaysBefore(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-brand-500"
+              className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
               placeholder="15"
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">Notas</span>
+            <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-600">Notas</span>
             <input
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-brand-500"
-              placeholder="Numero de poliza, proveedor, referencia..."
+              className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-950 focus:bg-white focus:ring-4 focus:ring-slate-950/5"
+              placeholder="Referencia o detalles..."
             />
           </label>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
           {error}
         </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-2xl bg-brand-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
-      >
-        {isSubmitting ? "Guardando..." : "Guardar vencimiento"}
-      </button>
+      {!canEdit ? (
+        <div className="rounded-xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          Este formulario esta bloqueado para operadores.
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        <button
+          type="submit"
+          disabled={isSubmitting || !canEdit}
+          className="w-full rounded-xl bg-slate-950 px-8 py-4 text-base font-black uppercase tracking-widest text-white shadow-lg transition hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
+        >
+          {isSubmitting ? "Guardando..." : "Guardar vencimiento"}
+        </button>
+      </div>
     </form>
   );
 }

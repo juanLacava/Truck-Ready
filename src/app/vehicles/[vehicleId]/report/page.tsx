@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getActiveMembership } from "@/lib/company-membership";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
 type Membership = {
   company_id: string;
+  created_at: string;
   companies: {
     name: string;
   } | null;
@@ -132,17 +134,11 @@ export default function VehicleReportPage({
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from("company_members")
-          .select("company_id, companies(name)")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<Membership[]>()
-          .maybeSingle();
-
-        if (membershipError) {
-          throw membershipError;
-        }
+        const membership = await getActiveMembership<Membership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, companies(name)"
+        );
 
         if (!membership) {
           router.replace("/onboarding");

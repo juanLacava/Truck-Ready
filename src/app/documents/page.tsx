@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { DocumentForm } from "@/components/document-form";
+import { getActiveMembership } from "@/lib/company-membership";
+import { formatAlertDate, getDocumentAlertState } from "@/lib/alerts";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
 type Membership = {
   company_id: string;
+  created_at: string;
+  role: "owner" | "admin" | "operator";
+};
+
+type AlertSetting = {
+  upcoming_window_days: number;
 };
 
 type Vehicle = {
@@ -30,56 +38,13 @@ type VehicleDocument = {
   vehicles: Vehicle | null;
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
-
-function getDocumentState(expiresAt: string | null) {
-  if (!expiresAt) {
-    return {
-      label: "Sin fecha",
-      tone: "bg-slate-100 text-slate-700",
-      detail: "Sin vencimiento cargado",
-    };
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(`${expiresAt}T00:00:00`);
-  const diffDays = Math.ceil((due.getTime() - today.getTime()) / 86400000);
-
-  if (diffDays < 0) {
-    return {
-      label: "Vencido",
-      tone: "bg-rose-100 text-rose-800",
-      detail: `${Math.abs(diffDays)} dias de atraso`,
-    };
-  }
-
-  if (diffDays <= 30) {
-    return {
-      label: "Proximo",
-      tone: "bg-amber-100 text-amber-800",
-      detail: diffDays === 0 ? "Vence hoy" : `Faltan ${diffDays} dias`,
-    };
-  }
-
-  return {
-    label: "Ready",
-    tone: "bg-emerald-100 text-emerald-800",
-    detail: `Faltan ${diffDays} dias`,
-  };
-}
-
 export default function DocumentsPage() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState<Membership["role"] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
+  const [upcomingWindowDays, setUpcomingWindowDays] = useState(15);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -98,17 +63,11 @@ export default function DocumentsPage() {
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from("company_members")
-          .select("company_id")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<Membership[]>()
-          .maybeSingle();
-
-        if (membershipError) {
-          throw membershipError;
-        }
+        const membership = await getActiveMembership<Membership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, role"
+        );
 
         if (!membership) {
           router.replace("/onboarding");
@@ -118,6 +77,7 @@ export default function DocumentsPage() {
         const [
           { data: vehiclesData, error: vehiclesError },
           { data: documentsData, error: documentsError },
+          { data: settingsData, error: settingsError },
         ] = await Promise.all([
           supabase
             .from("vehicles")
@@ -134,6 +94,12 @@ export default function DocumentsPage() {
             .neq("status", "archived")
             .order("expires_at", { ascending: true, nullsFirst: false })
             .returns<VehicleDocument[]>(),
+          supabase
+            .from("company_alert_settings")
+            .select("upcoming_window_days")
+            .eq("company_id", membership.company_id)
+            .returns<AlertSetting[]>()
+            .maybeSingle(),
         ]);
 
         if (vehiclesError) {
@@ -144,13 +110,19 @@ export default function DocumentsPage() {
           throw documentsError;
         }
 
+        if (settingsError) {
+          throw settingsError;
+        }
+
         if (!isMounted) {
           return;
         }
 
         setCompanyId(membership.company_id);
+        setRole(membership.role);
         setVehicles(vehiclesData ?? []);
         setDocuments(documentsData ?? []);
+        setUpcomingWindowDays(settingsData?.upcoming_window_days ?? 15);
       } catch (loadError) {
         const detail =
           loadError instanceof Error
@@ -175,7 +147,7 @@ export default function DocumentsPage() {
   }, [router]);
 
   const documentsNeedingAttention = documents.filter((document) => {
-    const state = getDocumentState(document.expires_at);
+    const state = getDocumentAlertState(document.expires_at, upcomingWindowDays);
     return state.label === "Vencido" || state.label === "Proximo";
   }).length;
 
@@ -237,7 +209,7 @@ export default function DocumentsPage() {
                 </tr>
               ) : (
                 documents.map((document) => {
-                  const state = getDocumentState(document.expires_at);
+                  const state = getDocumentAlertState(document.expires_at, upcomingWindowDays);
 
                   return (
                     <tr key={document.id}>
@@ -256,7 +228,7 @@ export default function DocumentsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        <div>{document.expires_at ? formatDate(document.expires_at) : "-"}</div>
+                        <div>{document.expires_at ? formatAlertDate(document.expires_at) : "-"}</div>
                         <div className="text-xs text-slate-500">{state.detail}</div>
                       </td>
                       <td className="px-4 py-3">
@@ -274,8 +246,16 @@ export default function DocumentsPage() {
           </table>
         </div>
 
+        {role === "operator" ? (
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="text-sm font-semibold text-amber-900">
+              Tu rol actual es operador. Puedes ver documentos, pero no cargar nuevos.
+            </div>
+          </div>
+        ) : null}
+
         {companyId ? (
-          <DocumentForm companyId={companyId} vehicles={vehicles} />
+          <DocumentForm companyId={companyId} vehicles={vehicles} canEdit={role !== "operator"} />
         ) : (
           <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-sm text-slate-500">

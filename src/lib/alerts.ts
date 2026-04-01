@@ -56,7 +56,16 @@ export function getExpirationAlertState(dueDate: string, alertDaysBefore: number
   };
 }
 
-export function getMaintenanceAlertState(plan: MaintenanceAlertInput) {
+export function getMaintenanceAlertState(
+  plan: MaintenanceAlertInput,
+  options?: {
+    dateWindowDays?: number;
+    odometerWindowMiles?: number;
+  }
+) {
+  const dateWindowDays = options?.dateWindowDays ?? 7;
+  const odometerWindowMiles = options?.odometerWindowMiles ?? 1000;
+
   if (plan.trigger_type === "date" && plan.next_due_date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -71,7 +80,7 @@ export function getMaintenanceAlertState(plan: MaintenanceAlertInput) {
       };
     }
 
-    if (diffDays <= 7) {
+    if (diffDays <= dateWindowDays) {
       return {
         label: "Proximo",
         tone: "bg-amber-100 text-amber-800",
@@ -97,7 +106,7 @@ export function getMaintenanceAlertState(plan: MaintenanceAlertInput) {
       };
     }
 
-    if (remaining <= 1000) {
+    if (remaining <= odometerWindowMiles) {
       return {
         label: "Proximo",
         tone: "bg-amber-100 text-amber-800",
@@ -122,7 +131,7 @@ export function getMaintenanceAlertState(plan: MaintenanceAlertInput) {
   };
 }
 
-export function getDocumentAlertState(expiresAt: string | null) {
+export function getDocumentAlertState(expiresAt: string | null, alertDaysBefore = 30) {
   if (!expiresAt) {
     return {
       label: "Sin fecha",
@@ -144,7 +153,7 @@ export function getDocumentAlertState(expiresAt: string | null) {
     };
   }
 
-  if (diffDays <= 30) {
+  if (diffDays <= alertDaysBefore) {
     return {
       label: "Proximo",
       tone: "bg-amber-100 text-amber-800",
@@ -179,6 +188,20 @@ export function renderAlertEmailText(companyName: string, items: AlertSummaryIte
   });
 
   return [header, "", ...lines].join("\n\n");
+}
+
+export function renderAlertSmsText(companyName: string, items: AlertSummaryItem[]) {
+  const summary = items
+    .slice(0, 3)
+    .map((item) => `${item.categoryLabel}: ${item.title} (${item.vehicleLabel}, ${item.stateLabel})`)
+    .join(" | ");
+
+  const suffix =
+    items.length > 3 ? ` | +${items.length - 3} alerta${items.length - 3 === 1 ? "" : "s"}` : "";
+
+  return `Truck Ready: ${companyName} tiene ${items.length} alerta${
+    items.length === 1 ? "" : "s"
+  } activa${items.length === 1 ? "" : "s"}. ${summary}${suffix}`;
 }
 
 export function renderAlertEmailHtml(companyName: string, items: AlertSummaryItem[]) {

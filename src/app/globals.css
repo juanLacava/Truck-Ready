@@ -16,8 +16,8 @@ body {
   background:
     radial-gradient(circle at top, rgba(177, 196, 151, 0.28), transparent 40%),
     linear-gradient(180deg, #f7f6f1 0%, #eef1e7 100%);
-  color: #1f2937;
-  font-family: Arial, Helvetica, sans-serif;
+  color: #0f172a;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 a {

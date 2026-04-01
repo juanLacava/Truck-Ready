@@ -14,6 +14,7 @@ export type Database = {
           id: string;
           name: string;
           country: string | null;
+          created_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +22,7 @@ export type Database = {
           id?: string;
           name: string;
           country?: string | null;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -28,6 +30,7 @@ export type Database = {
           id?: string;
           name?: string;
           country?: string | null;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -92,10 +95,14 @@ export type Database = {
           company_id: string;
           email_enabled: boolean;
           recipient_email: string | null;
+          sms_enabled: boolean;
+          recipient_phone: string | null;
+          sms_only_urgent: boolean;
           include_overdue: boolean;
           include_upcoming: boolean;
           upcoming_window_days: number;
           last_sent_at: string | null;
+          last_sms_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -103,10 +110,14 @@ export type Database = {
           company_id: string;
           email_enabled?: boolean;
           recipient_email?: string | null;
+          sms_enabled?: boolean;
+          recipient_phone?: string | null;
+          sms_only_urgent?: boolean;
           include_overdue?: boolean;
           include_upcoming?: boolean;
           upcoming_window_days?: number;
           last_sent_at?: string | null;
+          last_sms_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -114,10 +125,14 @@ export type Database = {
           company_id?: string;
           email_enabled?: boolean;
           recipient_email?: string | null;
+          sms_enabled?: boolean;
+          recipient_phone?: string | null;
+          sms_only_urgent?: boolean;
           include_overdue?: boolean;
           include_upcoming?: boolean;
           upcoming_window_days?: number;
           last_sent_at?: string | null;
+          last_sms_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -377,7 +392,15 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_company_with_owner: {
+        Args: {
+          company_name: string;
+          company_country?: string | null;
+        };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

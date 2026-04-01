@@ -19,9 +19,11 @@ const languageOptions = [
 export function DocumentForm({
   companyId,
   vehicles,
+  canEdit = true,
 }: {
   companyId: string;
   vehicles: VehicleOption[];
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [vehicleId, setVehicleId] = useState(vehicles[0]?.id ?? "");
@@ -36,6 +38,12 @@ export function DocumentForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Solo owners y admins pueden cargar documentos.");
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
 
@@ -193,9 +201,15 @@ export function DocumentForm({
         </div>
       ) : null}
 
+      {!canEdit ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Este formulario esta bloqueado para operadores.
+        </div>
+      ) : null}
+
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !canEdit}
         className="w-full rounded-2xl bg-brand-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
       >
         {isSubmitting ? "Guardando..." : "Guardar documento"}

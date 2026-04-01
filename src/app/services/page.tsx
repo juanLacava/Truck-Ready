@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { ServiceRecordForm } from "@/components/service-record-form";
+import { getActiveMembership } from "@/lib/company-membership";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
 type Membership = {
   company_id: string;
+  created_at: string;
+  role: "owner" | "admin" | "operator";
 };
 
 type Vehicle = {
@@ -67,6 +70,7 @@ function formatCurrency(value: number) {
 export default function ServicesPage() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState<Membership["role"] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
   const [services, setServices] = useState<ServiceRecord[]>([]);
@@ -88,17 +92,11 @@ export default function ServicesPage() {
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from("company_members")
-          .select("company_id")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<Membership[]>()
-          .maybeSingle();
-
-        if (membershipError) {
-          throw membershipError;
-        }
+        const membership = await getActiveMembership<Membership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, role"
+        );
 
         if (!membership) {
           router.replace("/onboarding");
@@ -151,6 +149,7 @@ export default function ServicesPage() {
         }
 
         setCompanyId(membership.company_id);
+        setRole(membership.role);
         setVehicles(vehiclesData ?? []);
         setPlans(plansData ?? []);
         setServices(servicesData ?? []);
@@ -272,8 +271,21 @@ export default function ServicesPage() {
           </table>
         </div>
 
+        {role === "operator" ? (
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="text-sm font-semibold text-amber-900">
+              Tu rol actual es operador. Puedes revisar el historial, pero no registrar servicios.
+            </div>
+          </div>
+        ) : null}
+
         {companyId ? (
-          <ServiceRecordForm companyId={companyId} vehicles={vehicles} plans={plans} />
+          <ServiceRecordForm
+            companyId={companyId}
+            vehicles={vehicles}
+            plans={plans}
+            canEdit={role !== "operator"}
+          />
         ) : (
           <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-sm text-slate-500">

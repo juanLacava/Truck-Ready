@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { VehicleForm } from "@/components/vehicle-form";
+import { getActiveMembership } from "@/lib/company-membership";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +23,14 @@ type Vehicle = {
 
 type VehicleMembership = {
   company_id: string;
+  created_at: string;
+  role: "owner" | "admin" | "operator";
 };
 
 export default function VehiclesPage() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState<VehicleMembership["role"] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,17 +50,11 @@ export default function VehiclesPage() {
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from("company_members")
-          .select("company_id")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<VehicleMembership[]>()
-          .maybeSingle();
-
-        if (membershipError) {
-          throw membershipError;
-        }
+        const membership = await getActiveMembership<VehicleMembership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, role"
+        );
 
         if (!membership) {
           router.replace("/onboarding");
@@ -81,6 +79,7 @@ export default function VehiclesPage() {
         }
 
         setCompanyId(membership.company_id);
+        setRole(membership.role);
         setVehicles(vehiclesData ?? []);
       } catch (loadError) {
         const detail =
@@ -108,64 +107,70 @@ export default function VehiclesPage() {
   return (
     <DashboardLayout
       title="Unidades"
-      description="Modulo conectado a Supabase para administrar unidades y abrir el historial operativo de cada una."
+      description="Modulo de administracion de flota. Aqui puedes cargar nuevas unidades y gestionar el estado operativo de cada vehiculo."
     >
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+      <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="overflow-hidden rounded-3xl border-2 border-slate-300 bg-white shadow-xl">
+          <table className="min-w-full divide-y-2 divide-slate-300 text-sm">
+            <thead className="bg-slate-50 text-left text-slate-950 uppercase tracking-widest text-[10px] font-black">
               <tr>
-                <th className="px-4 py-3 font-medium">Codigo</th>
-                <th className="px-4 py-3 font-medium">Placa</th>
-                <th className="px-4 py-3 font-medium">Vehiculo</th>
-                <th className="px-4 py-3 font-medium">Kilometraje</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-5 py-4">Codigo</th>
+                <th className="px-5 py-4">Placa</th>
+                <th className="px-5 py-4">Vehiculo</th>
+                <th className="px-5 py-4">Odometer</th>
+                <th className="px-5 py-4">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y-2 divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                    Cargando unidades...
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-800 font-bold">
+                    Cargando flota...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-rose-700">
+                  <td colSpan={5} className="px-5 py-12 text-center text-rose-700 font-bold italic">
                     {error}
                   </td>
                 </tr>
               ) : vehicles.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold">
                     Aun no hay unidades cargadas.
                   </td>
                 </tr>
               ) : (
                 vehicles.map((vehicle) => (
-                  <tr key={vehicle.id}>
-                    <td className="px-4 py-3 text-slate-900">
+                  <tr key={vehicle.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-5 text-slate-950 font-black">
                       <Link
                         href={`/vehicles/${vehicle.id}`}
-                        className="font-medium text-brand-800 underline"
+                        className="underline decoration-slate-300 underline-offset-4 hover:decoration-emerald-500"
                       >
                         {vehicle.internal_code ?? "-"}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      <Link href={`/vehicles/${vehicle.id}`} className="hover:text-brand-800">
+                    <td className="px-5 py-5 text-slate-950 font-black tracking-tight">
+                      <Link href={`/vehicles/${vehicle.id}`} className="hover:text-emerald-700">
                         {vehicle.plate}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
+                    <td className="px-5 py-5 text-slate-800 font-bold">
                       {[vehicle.brand, vehicle.model, vehicle.year]
                         .filter(Boolean)
                         .join(" ") || "-"}
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
+                    <td className="px-5 py-5 text-slate-950 font-black">
                       {vehicle.current_odometer.toLocaleString("en-US")} mi
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{vehicle.status}</td>
+                    <td className="px-5 py-5">
+                      <span className={`inline-flex rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border-2 ${
+                        vehicle.status === 'active' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-100 border-slate-400 text-slate-700'
+                      }`}>
+                        {vehicle.status}
+                      </span>
+                    </td>
                   </tr>
                 ))
               )}
@@ -173,12 +178,20 @@ export default function VehiclesPage() {
           </table>
         </div>
 
+        {role === "operator" ? (
+          <div className="rounded-[40px] border-2 border-amber-200 bg-amber-50 p-8 shadow-lg">
+            <div className="text-base font-bold text-amber-900">
+              Tu rol actual es operador. Puedes consultar la flota, pero no cargar ni editar unidades.
+            </div>
+          </div>
+        ) : null}
+
         {companyId ? (
-          <VehicleForm companyId={companyId} />
+          <VehicleForm companyId={companyId} canEdit={role !== "operator"} />
         ) : (
-          <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
-            <div className="text-sm text-slate-500">
-              La empresa aun no esta lista para cargar unidades.
+          <div className="rounded-[40px] border-2 border-slate-300 bg-white p-8 shadow-lg">
+            <div className="text-base font-bold text-slate-800 text-center">
+              La empresa aun no esta lista para recibir unidades.
             </div>
           </div>
         )}

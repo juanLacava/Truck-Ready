@@ -27,28 +27,13 @@ export function OnboardingForm() {
         return;
       }
 
-      const { data: company, error: companyError } = await supabase
-        .from("companies")
-        .insert({
-          name: companyName,
-          country,
-          created_by: session.user.id,
-        })
-        .select("id")
-        .single();
+      const { error: companyError } = await supabase.rpc("create_company_with_owner", {
+        company_name: companyName,
+        company_country: country,
+      });
 
       if (companyError) {
         throw companyError;
-      }
-
-      const { error: memberError } = await supabase.from("company_members").insert({
-        company_id: company.id,
-        profile_id: session.user.id,
-        role: "owner",
-      });
-
-      if (memberError) {
-        throw memberError;
       }
 
       router.replace("/dashboard");

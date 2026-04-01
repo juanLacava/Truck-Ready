@@ -60,10 +60,14 @@ create table if not exists public.company_alert_settings (
   company_id uuid primary key references public.companies(id) on delete cascade,
   email_enabled boolean not null default false,
   recipient_email text,
+  sms_enabled boolean not null default false,
+  recipient_phone text,
+  sms_only_urgent boolean not null default true,
   include_overdue boolean not null default true,
   include_upcoming boolean not null default true,
   upcoming_window_days integer not null default 15,
   last_sent_at timestamptz,
+  last_sms_sent_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   constraint company_alert_settings_window_check check (upcoming_window_days between 1 and 30)
@@ -96,6 +100,12 @@ create table if not exists public.vehicles (
   constraint vehicles_status_check check (status in ('active', 'maintenance', 'inactive'))
 );
 
+alter table public.vehicles
+  drop constraint if exists vehicles_company_id_id_unique;
+
+alter table public.vehicles
+  add constraint vehicles_company_id_id_unique unique (company_id, id);
+
 create table if not exists public.vehicle_documents (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -113,6 +123,15 @@ create table if not exists public.vehicle_documents (
   constraint vehicle_documents_status_check check (status in ('active', 'archived'))
 );
 
+alter table public.vehicle_documents
+  drop constraint if exists vehicle_documents_company_vehicle_fk;
+
+alter table public.vehicle_documents
+  add constraint vehicle_documents_company_vehicle_fk
+  foreign key (company_id, vehicle_id)
+  references public.vehicles(company_id, id)
+  on delete cascade;
+
 create table if not exists public.expiration_items (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -127,6 +146,15 @@ create table if not exists public.expiration_items (
   updated_at timestamptz not null default timezone('utc', now()),
   constraint expiration_items_status_check check (status in ('active', 'completed', 'archived'))
 );
+
+alter table public.expiration_items
+  drop constraint if exists expiration_items_company_vehicle_fk;
+
+alter table public.expiration_items
+  add constraint expiration_items_company_vehicle_fk
+  foreign key (company_id, vehicle_id)
+  references public.vehicles(company_id, id)
+  on delete cascade;
 
 create table if not exists public.maintenance_plans (
   id uuid primary key default gen_random_uuid(),
@@ -152,6 +180,15 @@ create table if not exists public.maintenance_plans (
   )
 );
 
+alter table public.maintenance_plans
+  drop constraint if exists maintenance_plans_company_vehicle_fk;
+
+alter table public.maintenance_plans
+  add constraint maintenance_plans_company_vehicle_fk
+  foreign key (company_id, vehicle_id)
+  references public.vehicles(company_id, id)
+  on delete cascade;
+
 create table if not exists public.service_records (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -165,6 +202,15 @@ create table if not exists public.service_records (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.service_records
+  drop constraint if exists service_records_company_vehicle_fk;
+
+alter table public.service_records
+  add constraint service_records_company_vehicle_fk
+  foreign key (company_id, vehicle_id)
+  references public.vehicles(company_id, id)
+  on delete cascade;
 
 create index if not exists idx_company_members_profile_id on public.company_members(profile_id);
 create index if not exists idx_company_alert_settings_email_enabled on public.company_alert_settings(email_enabled);
@@ -261,6 +307,52 @@ as $$
   );
 $$;
 
+create or replace function public.is_company_manager(target_company_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.company_members cm
+    where cm.company_id = target_company_id
+      and cm.profile_id = auth.uid()
+      and cm.role in ('owner', 'admin')
+  );
+$$;
+
+create or replace function public.create_company_with_owner(
+  company_name text,
+  company_country text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_company_id uuid;
+  current_user_id uuid;
+begin
+  current_user_id := auth.uid();
+
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  insert into public.companies (name, country, created_by)
+  values (trim(company_name), nullif(trim(coalesce(company_country, '')), ''), current_user_id)
+  returning id into new_company_id;
+
+  insert into public.company_members (company_id, profile_id, role)
+  values (new_company_id, current_user_id, 'owner');
+
+  return new_company_id;
+end;
+$$;
+
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
 on public.profiles
@@ -292,17 +384,98 @@ for select
 using (public.is_company_member(company_id));
 
 drop policy if exists "company_alert_settings_all_member_company" on public.company_alert_settings;
-create policy "company_alert_settings_all_member_company"
+drop policy if exists "company_alert_settings_select_member_company" on public.company_alert_settings;
+create policy "company_alert_settings_select_member_company"
 on public.company_alert_settings
-for all
+for select
 using (public.is_company_member(company_id))
-with check (public.is_company_member(company_id));
+
+drop policy if exists "company_alert_settings_write_manager_company" on public.company_alert_settings;
+create policy "company_alert_settings_write_manager_company"
+on public.company_alert_settings
+for insert
+with check (public.is_company_manager(company_id));
+
+drop policy if exists "company_alert_settings_update_manager_company" on public.company_alert_settings;
+create policy "company_alert_settings_update_manager_company"
+on public.company_alert_settings
+for update
+using (public.is_company_manager(company_id))
+with check (public.is_company_manager(company_id));
+
+drop policy if exists "company_alert_settings_delete_manager_company" on public.company_alert_settings;
+create policy "company_alert_settings_delete_manager_company"
+on public.company_alert_settings
+for delete
+using (public.is_company_manager(company_id));
 
 drop policy if exists "company_members_insert_own_membership" on public.company_members;
-create policy "company_members_insert_own_membership"
+drop policy if exists "company_members_insert_manager_company" on public.company_members;
+create policy "company_members_insert_manager_company"
 on public.company_members
 for insert
-with check (profile_id = auth.uid());
+with check (
+  public.is_company_manager(company_id)
+  and (
+    role <> 'owner'
+    or exists (
+      select 1
+      from public.company_members cm
+      where cm.company_id = company_members.company_id
+        and cm.profile_id = auth.uid()
+        and cm.role = 'owner'
+    )
+  )
+);
+
+drop policy if exists "company_members_update_manager_company" on public.company_members;
+create policy "company_members_update_manager_company"
+on public.company_members
+for update
+using (
+  public.is_company_manager(company_id)
+  and (
+    role <> 'owner'
+    or exists (
+      select 1
+      from public.company_members cm
+      where cm.company_id = company_members.company_id
+        and cm.profile_id = auth.uid()
+        and cm.role = 'owner'
+    )
+  )
+)
+with check (
+  public.is_company_manager(company_id)
+  and (
+    role <> 'owner'
+    or exists (
+      select 1
+      from public.company_members cm
+      where cm.company_id = company_members.company_id
+        and cm.profile_id = auth.uid()
+        and cm.role = 'owner'
+    )
+  )
+);
+
+drop policy if exists "company_members_delete_manager_company" on public.company_members;
+create policy "company_members_delete_manager_company"
+on public.company_members
+for delete
+using (
+  public.is_company_manager(company_id)
+  and (
+    role <> 'owner'
+    or exists (
+      select 1
+      from public.company_members cm
+      where cm.company_id = company_members.company_id
+        and cm.profile_id = auth.uid()
+        and cm.role = 'owner'
+    )
+  )
+);
 
 drop policy if exists "companies_select_member_company" on public.companies;
 create policy "companies_select_member_company"
@@ -317,11 +490,11 @@ for insert
 with check (auth.uid() is not null and created_by = auth.uid());
 
 drop policy if exists "companies_update_member_company" on public.companies;
-create policy "companies_update_member_company"
+create policy "companies_update_manager_company"
 on public.companies
 for update
-using (public.is_company_member(id))
-with check (public.is_company_member(id));
+using (public.is_company_manager(id))
+with check (public.is_company_manager(id));
 
 drop policy if exists "vehicles_all_member_company" on public.vehicles;
 create policy "vehicles_all_member_company"

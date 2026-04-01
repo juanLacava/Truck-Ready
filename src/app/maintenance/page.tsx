@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { MaintenancePlanForm } from "@/components/maintenance-plan-form";
+import { getActiveMembership } from "@/lib/company-membership";
+import { formatAlertDate, getMaintenanceAlertState } from "@/lib/alerts";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
 type Membership = {
   company_id: string;
+  created_at: string;
+  role: "owner" | "admin" | "operator";
+};
+
+type AlertSetting = {
+  upcoming_window_days: number;
 };
 
 type Vehicle = {
@@ -36,81 +44,6 @@ type MaintenancePlan = {
   vehicles: Vehicle | null;
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
-
-function getMaintenanceState(plan: MaintenancePlan) {
-  if (plan.trigger_type === "date" && plan.next_due_date) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(`${plan.next_due_date}T00:00:00`);
-    const diffDays = Math.ceil((due.getTime() - today.getTime()) / 86400000);
-
-    if (diffDays < 0) {
-      return {
-        label: "Vencido",
-        tone: "bg-rose-100 text-rose-800",
-        detail: `${Math.abs(diffDays)} dias de atraso`,
-      };
-    }
-
-    if (diffDays <= 7) {
-      return {
-        label: "Proximo",
-        tone: "bg-amber-100 text-amber-800",
-        detail: diffDays === 0 ? "Toca hoy" : `Faltan ${diffDays} dias`,
-      };
-    }
-
-    return {
-      label: "Al dia",
-      tone: "bg-emerald-100 text-emerald-800",
-      detail: `Faltan ${diffDays} dias`,
-    };
-  }
-
-  if (plan.trigger_type === "odometer" && plan.next_due_odometer !== null) {
-    const currentOdometer = plan.vehicles?.current_odometer ?? 0;
-    const remaining = plan.next_due_odometer - currentOdometer;
-
-    if (remaining < 0) {
-      return {
-        label: "Vencido",
-        tone: "bg-rose-100 text-rose-800",
-        detail: `${Math.abs(remaining).toLocaleString("en-US")} mi de atraso`,
-      };
-    }
-
-    if (remaining <= 1000) {
-      return {
-        label: "Proximo",
-        tone: "bg-amber-100 text-amber-800",
-        detail:
-          remaining === 0
-            ? "Toca ahora"
-            : `Faltan ${remaining.toLocaleString("en-US")} mi`,
-      };
-    }
-
-    return {
-      label: "Al dia",
-      tone: "bg-emerald-100 text-emerald-800",
-      detail: `Faltan ${remaining.toLocaleString("en-US")} mi`,
-    };
-  }
-
-  return {
-    label: "Sin base",
-    tone: "bg-slate-100 text-slate-700",
-    detail: "Faltan datos para calcular",
-  };
-}
-
 function formatRule(plan: MaintenancePlan) {
   if (plan.trigger_type === "date") {
     return `Cada ${plan.interval_days ?? "-"} dias`;
@@ -121,7 +54,7 @@ function formatRule(plan: MaintenancePlan) {
 
 function formatNextDue(plan: MaintenancePlan) {
   if (plan.trigger_type === "date" && plan.next_due_date) {
-    return formatDate(plan.next_due_date);
+    return formatAlertDate(plan.next_due_date);
   }
 
   if (plan.trigger_type === "odometer" && plan.next_due_odometer !== null) {
@@ -134,8 +67,10 @@ function formatNextDue(plan: MaintenancePlan) {
 export default function MaintenancePage() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState<Membership["role"] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
+  const [upcomingWindowDays, setUpcomingWindowDays] = useState(15);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -154,24 +89,22 @@ export default function MaintenancePage() {
           return;
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from("company_members")
-          .select("company_id")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<Membership[]>()
-          .maybeSingle();
-
-        if (membershipError) {
-          throw membershipError;
-        }
+        const membership = await getActiveMembership<Membership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, role"
+        );
 
         if (!membership) {
           router.replace("/onboarding");
           return;
         }
 
-        const [{ data: vehiclesData, error: vehiclesError }, { data: plansData, error: plansError }] =
+        const [
+          { data: vehiclesData, error: vehiclesError },
+          { data: plansData, error: plansError },
+          { data: settingsData, error: settingsError },
+        ] =
           await Promise.all([
             supabase
               .from("vehicles")
@@ -188,6 +121,12 @@ export default function MaintenancePage() {
               .neq("status", "archived")
               .order("created_at", { ascending: false })
               .returns<MaintenancePlan[]>(),
+            supabase
+              .from("company_alert_settings")
+              .select("upcoming_window_days")
+              .eq("company_id", membership.company_id)
+              .returns<AlertSetting[]>()
+              .maybeSingle(),
           ]);
 
         if (vehiclesError) {
@@ -198,13 +137,19 @@ export default function MaintenancePage() {
           throw plansError;
         }
 
+        if (settingsError) {
+          throw settingsError;
+        }
+
         if (!isMounted) {
           return;
         }
 
         setCompanyId(membership.company_id);
+        setRole(membership.role);
         setVehicles(vehiclesData ?? []);
         setPlans(plansData ?? []);
+        setUpcomingWindowDays(settingsData?.upcoming_window_days ?? 15);
       } catch (loadError) {
         const detail =
           loadError instanceof Error
@@ -230,63 +175,77 @@ export default function MaintenancePage() {
 
   const activePlans = plans.filter((plan) => plan.status === "active");
   const plansNeedingAttention = activePlans.filter((plan) => {
-    const state = getMaintenanceState(plan);
+    const state = getMaintenanceAlertState(plan, {
+      dateWindowDays: upcomingWindowDays,
+    });
     return state.label !== "Al dia";
   }).length;
 
   return (
     <DashboardLayout
       title="Mantenimiento"
-      description="Planes preventivos por fecha o kilometraje conectados a las unidades reales de la empresa."
+      description="Planes preventivos por fecha o kilometraje para cada unidad de la flota."
     >
-      <section className="mb-6 grid gap-4 md:grid-cols-3">
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Planes activos</div>
-          <div className="mt-3 text-3xl font-semibold text-slate-900">
+      <section className="mb-8 grid gap-4 md:grid-cols-3">
+        <article className="rounded-2xl border-2 border-slate-300 bg-white p-6 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-widest text-slate-600">Planes activos</div>
+          <div className="mt-2 text-4xl font-black text-slate-950">
             {activePlans.length}
           </div>
         </article>
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Unidades con plan</div>
-          <div className="mt-3 text-3xl font-semibold text-slate-900">
+        <article className="rounded-2xl border-2 border-slate-300 bg-white p-6 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-widest text-slate-600">Unidades</div>
+          <div className="mt-2 text-4xl font-black text-slate-950">
             {new Set(activePlans.map((plan) => plan.vehicle_id)).size}
           </div>
         </article>
-        <article className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Proximos o vencidos</div>
-          <div className="mt-3 text-3xl font-semibold text-slate-900">
+        <article className={`rounded-2xl border-2 p-6 shadow-sm ${
+          activePlans.some((plan) =>
+            getMaintenanceAlertState(plan, { dateWindowDays: upcomingWindowDays }).label === "Vencido"
+          )
+          ? 'border-rose-500 bg-rose-50'
+          : 'border-slate-300 bg-white'
+        }`}>
+          <div className="text-xs font-black uppercase tracking-widest text-slate-600">Por atender</div>
+          <div className={`mt-2 text-4xl font-black ${
+            activePlans.some((plan) =>
+              getMaintenanceAlertState(plan, { dateWindowDays: upcomingWindowDays }).label === "Vencido"
+            )
+            ? 'text-rose-700'
+            : 'text-slate-950'
+          }`}>
             {plansNeedingAttention}
           </div>
         </article>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+      <div className="grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="overflow-hidden rounded-3xl border-2 border-slate-300 bg-white shadow-xl">
+          <table className="min-w-full divide-y-2 divide-slate-300 text-sm">
+            <thead className="bg-slate-50 text-left text-slate-950 uppercase tracking-widest text-[10px] font-black">
               <tr>
-                <th className="px-4 py-3 font-medium">Unidad</th>
-                <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 font-medium">Proximo</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-5 py-4">Unidad</th>
+                <th className="px-5 py-4">Plan / Regla</th>
+                <th className="px-5 py-4">Proximo</th>
+                <th className="px-5 py-4">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y-2 divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={4} className="px-5 py-12 text-center text-slate-800 font-bold">
                     Cargando planes...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-rose-700">
+                  <td colSpan={4} className="px-5 py-12 text-center text-rose-700 font-bold italic">
                     {error}
                   </td>
                 </tr>
               ) : activePlans.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={4} className="px-5 py-12 text-center text-slate-600 font-bold">
                     Aun no hay planes de mantenimiento cargados.
                   </td>
                 </tr>
@@ -294,29 +253,36 @@ export default function MaintenancePage() {
                 activePlans.map((plan) => {
                   const vehicleLabel =
                     plan.vehicles?.internal_code || plan.vehicles?.plate || "-";
-                  const state = getMaintenanceState(plan);
+                  const state = getMaintenanceAlertState(plan, {
+                    dateWindowDays: upcomingWindowDays,
+                  });
+                  const isUrgent = state.label === "Vencido";
 
                   return (
-                    <tr key={plan.id}>
-                      <td className="px-4 py-3 text-slate-700">
-                        <div className="font-medium text-slate-900">{vehicleLabel}</div>
-                        <div className="text-xs text-slate-500">
-                          {[plan.vehicles?.plate, plan.vehicles?.brand, plan.vehicles?.model]
-                            .filter(Boolean)
-                            .join(" · ") || "Sin detalle"}
+                    <tr key={plan.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-5">
+                        <div className="font-black text-slate-950 text-base">{vehicleLabel}</div>
+                        <div className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                          {plan.vehicles?.plate}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        <div className="font-medium text-slate-900">{plan.title}</div>
-                        <div className="text-xs text-slate-500">{formatRule(plan)}</div>
+                      <td className="px-5 py-5">
+                        <div className="font-black text-slate-950 text-base">{plan.title}</div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                          {formatRule(plan)}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        <div>{formatNextDue(plan)}</div>
-                        <div className="text-xs text-slate-500">{state.detail}</div>
+                      <td className="px-5 py-5">
+                        <div className="font-black text-slate-900 leading-none">{formatNextDue(plan)}</div>
+                        <div className={`mt-1 text-[11px] font-bold ${isUrgent ? 'text-rose-700' : 'text-slate-500'}`}>{state.detail}</div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-5">
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${state.tone}`}
+                          className={`inline-flex rounded-lg px-3 py-1 text-[11px] font-black uppercase tracking-wider border-2 ${
+                            isUrgent ? 'bg-rose-50 border-rose-500 text-rose-900' : 
+                            state.label === 'Proximo' ? 'bg-amber-50 border-amber-500 text-amber-900' :
+                            'bg-emerald-50 border-emerald-500 text-emerald-900'
+                          }`}
                         >
                           {state.label}
                         </span>
@@ -329,8 +295,16 @@ export default function MaintenancePage() {
           </table>
         </div>
 
+        {role === "operator" ? (
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="text-sm font-semibold text-amber-900">
+              Tu rol actual es operador. Puedes ver planes, pero no crear ni actualizar mantenimiento.
+            </div>
+          </div>
+        ) : null}
+
         {companyId ? (
-          <MaintenancePlanForm companyId={companyId} vehicles={vehicles} />
+          <MaintenancePlanForm companyId={companyId} vehicles={vehicles} canEdit={role !== "operator"} />
         ) : (
           <div className="rounded-3xl border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-sm text-slate-500">

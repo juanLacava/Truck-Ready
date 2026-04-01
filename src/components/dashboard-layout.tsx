@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getMemberships, setActiveCompanyId } from "@/lib/company-membership";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
 
 type Membership = {
   company_id: string;
+  created_at: string;
   role: string;
   companies: {
     name: string;
@@ -40,6 +42,8 @@ export function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [activeCompanyId, setCurrentActiveCompanyId] = useState<string | null>(null);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,18 +66,18 @@ export function DashboardLayout({
 
         setEmail(session.user.email ?? null);
 
-        const { data: memberships, error } = await supabase
-          .from("company_members")
-          .select("company_id, role, companies(name)")
-          .eq("profile_id", session.user.id)
-          .limit(1)
-          .returns<Membership[]>();
+        const membershipsData = await getMemberships<Membership>(
+          supabase,
+          session.user.id,
+          "company_id, created_at, role, companies(name)"
+        );
 
-        if (error) {
-          throw error;
-        }
-
-        const membership = memberships?.[0] ?? null;
+        const savedCompanyId =
+          typeof window === "undefined"
+            ? null
+            : window.localStorage.getItem("truck-ready.active-company-id");
+        const membership =
+          membershipsData.find((item) => item.company_id === savedCompanyId) ?? membershipsData[0] ?? null;
 
         if (!membership) {
           router.replace("/onboarding");
@@ -84,6 +88,8 @@ export function DashboardLayout({
           return;
         }
 
+        setMemberships(membershipsData);
+        setCurrentActiveCompanyId(membership.company_id);
         setCompanyName(membership.companies?.name ?? null);
       } catch (error) {
         console.error(error);
@@ -107,6 +113,13 @@ export function DashboardLayout({
     router.replace("/login");
   }
 
+  function handleCompanyChange(nextCompanyId: string) {
+    setActiveCompanyId(nextCompanyId);
+    setCurrentActiveCompanyId(nextCompanyId);
+    const nextMembership = memberships.find((membership) => membership.company_id === nextCompanyId);
+    setCompanyName(nextMembership?.companies?.name ?? null);
+  }
+
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center px-6 py-10">
@@ -118,17 +131,36 @@ export function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#eef1e7] text-slate-900">
-      <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[240px_1fr]">
-        <aside className="border-b border-slate-200 bg-brand-900 px-6 py-8 text-brand-50 lg:border-b-0 lg:border-r lg:border-brand-800">
-          <Link href="/" className="text-xl font-semibold tracking-tight">
+    <div className="min-h-screen bg-[#f3f5ed] text-slate-950">
+      <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[260px_1fr]">
+        <aside className="border-b-2 border-slate-300 bg-slate-950 px-6 py-10 text-white lg:border-b-0 lg:border-r-2 lg:border-slate-950">
+          <Link href="/" className="text-2xl font-black tracking-tighter uppercase italic">
             Truck Ready
           </Link>
-          <p className="mt-2 text-sm text-brand-100">
-            {companyName ?? "Flotilla sin configurar"}
-          </p>
+          {memberships.length > 1 ? (
+            <div className="mt-4">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                Empresa activa
+              </label>
+              <select
+                value={activeCompanyId ?? ""}
+                onChange={(event) => handleCompanyChange(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-emerald-500/20 bg-slate-900 px-3 py-2 text-sm font-bold text-white outline-none transition focus:border-emerald-400"
+              >
+                {memberships.map((membership) => (
+                  <option key={membership.company_id} value={membership.company_id}>
+                    {membership.companies?.name ?? "Empresa"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="mt-4 inline-flex rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+              {companyName ?? "Flotilla"}
+            </div>
+          )}
 
-          <nav className="mt-8 space-y-2">
+          <nav className="mt-12 space-y-1.5">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
 
@@ -136,10 +168,10 @@ export function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-xl px-3 py-2 text-sm transition ${
+                  className={`block rounded-xl px-4 py-3 text-sm font-black transition-all ${
                     isActive
-                      ? "bg-brand-100 text-brand-900"
-                      : "text-brand-100 hover:bg-brand-800 hover:text-white"
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20"
+                      : "text-slate-400 hover:bg-slate-900 hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -148,29 +180,32 @@ export function DashboardLayout({
             })}
           </nav>
 
-          <div className="mt-8 rounded-2xl bg-brand-800/80 px-4 py-3 text-sm text-brand-100">
-            <div className="font-medium text-white">{email ?? "Sin email"}</div>
+          <div className="mt-12 rounded-2xl border-2 border-slate-800 bg-slate-900/50 p-5 shadow-inner">
+            <div className="text-xs font-black uppercase tracking-widest text-slate-500">Sesion</div>
+            <div className="mt-2 text-sm font-bold text-slate-200 truncate">{email ?? "Sin email"}</div>
             <button
               type="button"
               onClick={handleSignOut}
-              className="mt-3 text-sm underline"
+              className="mt-4 w-full rounded-xl border-2 border-rose-900/50 bg-rose-950/20 py-2 text-xs font-black uppercase tracking-widest text-rose-400 transition hover:bg-rose-950 hover:text-white"
             >
               Cerrar sesion
             </button>
           </div>
         </aside>
 
-        <div className="px-6 py-8 md:px-10">
-          <header className="mb-8">
-            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+        <div className="px-6 py-10 md:px-12 overflow-x-hidden">
+          <header className="mb-10">
+            <h1 className="text-4xl font-black tracking-tighter text-slate-950 uppercase">{title}</h1>
             {description ? (
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              <p className="mt-3 max-w-2xl text-lg font-bold leading-relaxed text-slate-800">
                 {description}
               </p>
             ) : null}
           </header>
 
-          {children}
+          <div key={activeCompanyId ?? "no-company"} className="relative">
+            {children}
+          </div>
         </div>
       </div>
     </div>

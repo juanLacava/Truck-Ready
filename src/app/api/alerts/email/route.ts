@@ -7,6 +7,7 @@ import {
   getMaintenanceAlertState,
   renderAlertEmailHtml,
   renderAlertEmailText,
+  renderAlertSmsText,
   type AlertSummaryItem,
 } from "@/lib/alerts";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -18,6 +19,9 @@ type AlertSetting = {
   company_id: string;
   email_enabled: boolean;
   recipient_email: string | null;
+  sms_enabled: boolean;
+  recipient_phone: string | null;
+  sms_only_urgent: boolean;
   include_overdue: boolean;
   include_upcoming: boolean;
   upcoming_window_days: number;
@@ -60,6 +64,10 @@ type DocumentRow = {
   } | null;
 };
 
+type RankedAlertItem = AlertSummaryItem & {
+  sortValue: number;
+};
+
 function matchesPreference(
   stateLabel: string,
   includeOverdue: boolean,
@@ -74,6 +82,27 @@ function matchesPreference(
   }
 
   return false;
+}
+
+function getDaysUntil(value: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const target = new Date(`${value}T00:00:00`);
+
+  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
+function getMaintenanceSortValue(item: MaintenanceRow) {
+  if (item.trigger_type === "date" && item.next_due_date) {
+    return getDaysUntil(item.next_due_date);
+  }
+
+  if (item.trigger_type === "odometer" && item.next_due_odometer !== null) {
+    return item.next_due_odometer - (item.vehicles?.current_odometer ?? 0);
+  }
+
+  return Number.POSITIVE_INFINITY;
 }
 
 async function sendWithResend(to: string, subject: string, html: string, text: string) {
@@ -110,6 +139,56 @@ async function sendWithResend(to: string, subject: string, html: string, text: s
   };
 }
 
+function isE164Phone(value: string) {
+  return /^\+[1-9]\d{7,14}$/.test(value);
+}
+
+async function sendWithTwilio(to: string, body: string) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM_NUMBER;
+
+  if (!accountSid || !authToken || !from) {
+    return {
+      delivered: false,
+      reason: "Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN or TWILIO_FROM_NUMBER",
+    };
+  }
+
+  if (!isE164Phone(to)) {
+    return {
+      delivered: false,
+      reason: "recipient_phone must use E.164 format",
+    };
+  }
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: to,
+        From: from,
+        Body: body,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text();
+
+    throw new Error(`Twilio error: ${detail}`);
+  }
+
+  return {
+    delivered: true,
+  };
+}
+
 function isAuthorized(request: NextRequest) {
   const configuredSecret = process.env.ALERTS_CRON_SECRET;
   const bearerToken = request.headers
@@ -137,10 +216,9 @@ async function processEmailAlerts({
   let settingsQuery = supabase
     .from("company_alert_settings")
     .select(
-      "company_id, email_enabled, recipient_email, include_overdue, include_upcoming, upcoming_window_days, companies(name)"
+      "company_id, email_enabled, recipient_email, sms_enabled, recipient_phone, sms_only_urgent, include_overdue, include_upcoming, upcoming_window_days, companies(name)"
     )
-    .eq("email_enabled", true)
-    .not("recipient_email", "is", null);
+    .or("email_enabled.eq.true,sms_enabled.eq.true");
 
   if (companyId) {
     settingsQuery = settingsQuery.eq("company_id", companyId);
@@ -166,7 +244,7 @@ async function processEmailAlerts({
         .eq("company_id", setting.company_id)
         .eq("status", "active")
         .order("due_date", { ascending: true })
-        .limit(25)
+        .limit(100)
         .returns<ExpirationRow[]>(),
       supabase
         .from("maintenance_plans")
@@ -175,7 +253,7 @@ async function processEmailAlerts({
         )
         .eq("company_id", setting.company_id)
         .eq("status", "active")
-        .limit(25)
+        .limit(100)
         .returns<MaintenanceRow[]>(),
       supabase
         .from("vehicle_documents")
@@ -183,7 +261,7 @@ async function processEmailAlerts({
         .eq("company_id", setting.company_id)
         .eq("status", "active")
         .order("expires_at", { ascending: true, nullsFirst: false })
-        .limit(25)
+        .limit(100)
         .returns<DocumentRow[]>(),
     ]);
 
@@ -199,7 +277,7 @@ async function processEmailAlerts({
       continue;
     }
 
-    const expirationAlerts: AlertSummaryItem[] = (expirations ?? [])
+    const expirationAlerts: RankedAlertItem[] = (expirations ?? [])
       .map((item) => {
         const state = getExpirationAlertState(
           item.due_date,
@@ -215,15 +293,18 @@ async function processEmailAlerts({
           detail: state.detail,
           stateLabel: state.label,
           stateTone: state.tone,
+          sortValue: getDaysUntil(item.due_date),
         };
       })
       .filter((item) =>
         matchesPreference(item.stateLabel, setting.include_overdue, setting.include_upcoming)
       );
 
-    const maintenanceAlerts: AlertSummaryItem[] = (maintenance ?? [])
+    const maintenanceAlerts: RankedAlertItem[] = (maintenance ?? [])
       .map((item) => {
-        const state = getMaintenanceAlertState(item);
+        const state = getMaintenanceAlertState(item, {
+          dateWindowDays: setting.upcoming_window_days,
+        });
 
         return {
           id: item.id,
@@ -237,15 +318,16 @@ async function processEmailAlerts({
           detail: state.detail,
           stateLabel: state.label,
           stateTone: state.tone,
+          sortValue: getMaintenanceSortValue(item),
         };
       })
       .filter((item) =>
         matchesPreference(item.stateLabel, setting.include_overdue, setting.include_upcoming)
       );
 
-    const documentAlerts: AlertSummaryItem[] = (documents ?? [])
+    const documentAlerts: RankedAlertItem[] = (documents ?? [])
       .map((item) => {
-        const state = getDocumentAlertState(item.expires_at);
+        const state = getDocumentAlertState(item.expires_at, setting.upcoming_window_days);
 
         return {
           id: item.id,
@@ -258,6 +340,7 @@ async function processEmailAlerts({
           detail: state.detail,
           stateLabel: state.label,
           stateTone: state.tone,
+          sortValue: item.expires_at ? getDaysUntil(item.expires_at) : Number.POSITIVE_INFINITY,
         };
       })
       .filter((item) =>
@@ -265,7 +348,15 @@ async function processEmailAlerts({
       );
 
     const alertItems = [...expirationAlerts, ...maintenanceAlerts, ...documentAlerts]
-      .sort((a, b) => getAlertPriority(a.stateLabel) - getAlertPriority(b.stateLabel))
+      .sort((a, b) => {
+        const priorityDiff = getAlertPriority(a.stateLabel) - getAlertPriority(b.stateLabel);
+
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
+
+        return a.sortValue - b.sortValue;
+      })
       .slice(0, 12);
 
     if (alertItems.length === 0) {
@@ -284,43 +375,123 @@ async function processEmailAlerts({
     } activa${alertItems.length === 1 ? "" : "s"} en ${companyName}`;
     const html = renderAlertEmailHtml(companyName, alertItems);
     const text = renderAlertEmailText(companyName, alertItems);
+    const smsItems = setting.sms_only_urgent
+      ? alertItems.filter((item) => item.stateLabel === "Vencido")
+      : alertItems;
+    const smsText = smsItems.length > 0 ? renderAlertSmsText(companyName, smsItems) : null;
+    const emailReady = setting.email_enabled && Boolean(setting.recipient_email);
+    const smsReady = setting.sms_enabled && Boolean(setting.recipient_phone);
+
+    if (!emailReady && !smsReady) {
+      deliveries.push({
+        companyId: setting.company_id,
+        delivered: false,
+        skipped: true,
+        reason: "No delivery channel configured",
+      });
+      continue;
+    }
 
     if (dryRun) {
       deliveries.push({
         companyId: setting.company_id,
         delivered: false,
         preview: true,
-        to: setting.recipient_email,
-        subject,
         alerts: alertItems.length,
+        email: emailReady
+          ? {
+              to: setting.recipient_email,
+              subject,
+            }
+          : null,
+        sms: smsReady
+          ? {
+              to: setting.recipient_phone,
+              alerts: smsItems.length,
+              urgentOnly: setting.sms_only_urgent,
+            }
+          : null,
       });
       continue;
     }
 
-    try {
-      const delivery = await sendWithResend(setting.recipient_email!, subject, html, text);
+    const deliveryResult: {
+      companyId: string;
+      delivered: boolean;
+      alerts: number;
+      email?: Record<string, unknown>;
+      sms?: Record<string, unknown>;
+    } = {
+      companyId: setting.company_id,
+      delivered: false,
+      alerts: alertItems.length,
+    };
 
-      if (delivery.delivered) {
-        await supabase
-          .from("company_alert_settings")
-          .update({ last_sent_at: new Date().toISOString() })
-          .eq("company_id", setting.company_id);
+    if (emailReady) {
+      try {
+        const emailDelivery = await sendWithResend(setting.recipient_email!, subject, html, text);
+
+        if (emailDelivery.delivered) {
+          await supabase
+            .from("company_alert_settings")
+            .update({ last_sent_at: new Date().toISOString() })
+            .eq("company_id", setting.company_id);
+        }
+
+        deliveryResult.email = {
+          delivered: emailDelivery.delivered,
+          to: setting.recipient_email,
+          ...(emailDelivery.delivered ? {} : { reason: emailDelivery.reason }),
+        };
+      } catch (error) {
+        deliveryResult.email = {
+          delivered: false,
+          to: setting.recipient_email,
+          error: error instanceof Error ? error.message : "Unknown email error",
+        };
       }
-
-      deliveries.push({
-        companyId: setting.company_id,
-        delivered: delivery.delivered,
-        to: setting.recipient_email,
-        alerts: alertItems.length,
-        ...(delivery.delivered ? {} : { reason: delivery.reason }),
-      });
-    } catch (error) {
-      deliveries.push({
-        companyId: setting.company_id,
-        delivered: false,
-        error: error instanceof Error ? error.message : "Unknown email error",
-      });
     }
+
+    if (smsReady) {
+      if (!smsText || smsItems.length === 0) {
+        deliveryResult.sms = {
+          delivered: false,
+          to: setting.recipient_phone,
+          skipped: true,
+          reason: "No SMS-eligible alerts",
+        };
+      } else {
+        try {
+          const smsDelivery = await sendWithTwilio(setting.recipient_phone!, smsText);
+
+          if (smsDelivery.delivered) {
+            await supabase
+              .from("company_alert_settings")
+              .update({ last_sms_sent_at: new Date().toISOString() })
+              .eq("company_id", setting.company_id);
+          }
+
+          deliveryResult.sms = {
+            delivered: smsDelivery.delivered,
+            to: setting.recipient_phone,
+            alerts: smsItems.length,
+            urgentOnly: setting.sms_only_urgent,
+            ...(smsDelivery.delivered ? {} : { reason: smsDelivery.reason }),
+          };
+        } catch (error) {
+          deliveryResult.sms = {
+            delivered: false,
+            to: setting.recipient_phone,
+            error: error instanceof Error ? error.message : "Unknown SMS error",
+          };
+        }
+      }
+    }
+
+    deliveryResult.delivered =
+      deliveryResult.email?.delivered === true || deliveryResult.sms?.delivered === true;
+
+    deliveries.push(deliveryResult);
   }
 
   return NextResponse.json({
