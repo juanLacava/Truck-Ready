@@ -52,7 +52,7 @@ export function FounderLeadForm() {
       setFleetSize("");
       setPrimaryConcern("");
       setSuccess(
-        "Recibido. Te vamos a contactar por WhatsApp para evaluar si encajas en Operadores Fundadores."
+        "Recibido. Te vamos a contactar por WhatsApp para confirmar si calificas para el Programa Fundador."
       );
     } catch (submissionError) {
       const detail =
@@ -73,14 +73,13 @@ export function FounderLeadForm() {
     >
       <div>
         <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          Operadores Fundadores
+          Programa Fundador
         </div>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
-          Aplica a la beta
+          Solicita admision
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Queremos hablar con transportistas reales. Completa esto y te
-          contactamos por WhatsApp si encajas para la oferta de lanzamiento.
+          Revisamos cada solicitud para incorporar operadores con necesidad real de orden documental, alertas y control de vencimientos.
         </p>
       </div>
 
@@ -160,12 +159,11 @@ export function FounderLeadForm() {
         disabled={isSubmitting}
         className="w-full rounded-2xl bg-[#10B981] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.28)] transition hover:bg-[#0ea271] disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isSubmitting ? "Enviando..." : "Ser Operador Fundador (-70%)"}
+        {isSubmitting ? "Enviando..." : "Solicitar admision"}
       </button>
 
       <p className="text-xs leading-5 text-slate-500">
-        Si quedas seleccionado, te contactamos por WhatsApp para una breve llamada
-        y acceso anticipado.
+        Si calificas, coordinamos una breve llamada y tu incorporacion prioritaria al programa.
       </p>
     </form>
   );

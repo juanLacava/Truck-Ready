@@ -211,7 +211,18 @@ async function processEmailAlerts({
   companyId?: string;
   dryRun: boolean;
 }) {
-  const supabase = getSupabaseAdminClient();
+  let supabase;
+
+  try {
+    supabase = getSupabaseAdminClient();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Missing alert environment configuration",
+      },
+      { status: 500 }
+    );
+  }
 
   let settingsQuery = supabase
     .from("company_alert_settings")

@@ -3,6 +3,13 @@
 Estado general: MVP base funcionando con Supabase
 Ultima actualizacion: 2026-04-01 11:10 -03
 
+## Estado predeploy
+- Revision por tandas avanzada hasta `3. Multiempresa + permisos`
+- Estado actual: `MVP avanzado / predeploy serio`
+- Resultado actual: `1. DB + security` pasa con observaciones, `2. Alerts + env` pasa con observaciones, `3. Multiempresa + permisos` pasa con observaciones
+- Siguiente paso recomendado: `4. Smoke test manual`
+- Resumen ejecutivo: `docs/PREDEPLOY_STATUS_2026-04-01.md`
+
 ## Nota de corte
 - Revision documentada del trabajo aplicado hasta 2026-04-01: docs/IMPLEMENTATION_REVIEW_2026-04-01.md
 - Importante: este corte incluye cambios manuales en app, alertas, roles y schema, pero no reemplaza la revision formal por tandas sugerida para DB + security, alerts + env y docs + finalizacion

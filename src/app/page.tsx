@@ -108,16 +108,16 @@ export default function HomePage() {
                 Tu camion,<br />siempre Ready.
               </h1>
               <p className="mt-8 max-w-2xl text-xl font-bold leading-relaxed text-slate-800 md:text-2xl">
-                Controla vencimientos, mantenimiento y documentos en un solo
-                lugar antes de tu proxima inspeccion.
+                Ordena vencimientos, mantenimiento y documentos en un solo
+                lugar para llegar listo a inspecciones, seguros y auditorias.
               </p>
 
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <a
-                  href="#operadores-fundadores"
+                  href="#programa-fundador"
                   className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-10 py-5 text-lg font-black text-white shadow-[0_15px_35px_rgba(16,185,129,0.35)] transition hover:bg-emerald-700 hover:-translate-y-1 active:translate-y-0"
                 >
-                  Unete como Operador Fundador (70% OFF)
+                  Solicitar admision prioritaria
                 </a>
                 <a
                   href="#semaforo"
@@ -180,9 +180,9 @@ export default function HomePage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 {[
-                  { label: "Beta", val: "10", sub: "Fundadores" },
-                  { label: "Oferta", val: "-70%", sub: "De por vida" },
-                  { label: "Enfoque", val: "DOT", sub: "Compliance" }
+                  { label: "Cupos", val: "10", sub: "Charter members" },
+                  { label: "Acceso", val: "Prioritario", sub: "Por admision" },
+                  { label: "Enfoque", val: "Compliance", sub: "Operacion" }
                 ].map((item) => (
                   <div key={item.label} className="rounded-3xl border-2 border-slate-300 bg-white p-6 shadow-lg text-center">
                     <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
@@ -320,23 +320,23 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="operadores-fundadores" className="mt-12 grid gap-8 rounded-[40px] border-2 border-slate-300 bg-white p-8 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-14 xl:grid-cols-[0.95fr_1.05fr]">
+        <section id="programa-fundador" className="mt-12 grid gap-8 rounded-[40px] border-2 border-slate-300 bg-white p-8 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-14 xl:grid-cols-[0.95fr_1.05fr]">
           <article className="rounded-[36px] bg-slate-950 p-10 text-white shadow-2xl border-2 border-slate-800">
             <div className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400">
-              Operadores Fundadores
+              Programa Fundador
             </div>
             <h2 className="mt-6 text-5xl font-black tracking-tighter leading-tight">
-              Se parte del origen.
+              Ingresa al grupo inicial.
             </h2>
             <p className="mt-8 text-xl font-bold leading-relaxed text-slate-400">
-              Herramienta hecha para el transportista hispano en EE. UU. Buscamos a los primeros 10.
+              Seleccionamos a 10 operadores para incorporacion prioritaria, puesta en marcha guiada y seguimiento cercano durante la adopcion inicial.
             </p>
 
             <div className="mt-12 grid gap-4">
               {[
-                "Acceso total anticipado.",
-                "70% OFF de por vida.",
-                "Soporte directo con fundadores."
+                "Acceso prioritario antes de la apertura general.",
+                "Incorporacion prioritaria con condiciones preferenciales para miembros aprobados.",
+                "Onboarding directo para dejar tu operacion lista para inspeccion."
               ].map(text => (
                 <div key={text} className="rounded-2xl bg-white/5 border-2 border-white/10 px-6 py-5 text-lg font-black text-slate-100 flex items-center gap-5">
                   <span className="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />

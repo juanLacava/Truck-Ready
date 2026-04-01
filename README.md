@@ -48,6 +48,8 @@ TWILIO_AUTH_TOKEN=
 TWILIO_FROM_NUMBER=
 ```
 
+Si no vas a habilitar SMS en el primer deploy, deja las variables de Twilio vacias y mantene `sms_enabled` apagado en la configuracion de la empresa.
+
 ## Alertas por email y SMS
 1. Configura las preferencias desde `/alerts`
 2. Define `ALERTS_CRON_SECRET` tambien en Vercel como `CRON_SECRET` si vas a usar Vercel Cron

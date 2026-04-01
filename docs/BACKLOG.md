@@ -41,6 +41,27 @@
 - [x] Definir mensaje comercial para owner-operators hispanos
 - [x] Implementar reporte exportable por unidad
 
+## Fase UI: Heavy Duty (Handoff de Diseño)
+- [ ] **Dashboard Mission Control:**
+  - [x] Implementar el `Safety Dial` (SVG/Canvas) con colores dinamicos (0-100%).
+  - [x] Refactorizar alertas con el nuevo estilo de `Alert Cards` (Borde izquierdo de 8px).
+  - [x] Anadir boton de acceso rapido al "Modo Inspeccion".
+- [ ] **Vehicle ID Cards:**
+  - [x] Sustituir tablas de vehiculos por el layout de tarjetas 3:2 (Tipo Licencia).
+  - [x] Implementar botones tactiles `[-]` y `[+]` de 64px para el odometro.
+- [ ] **Inspection Mode:**
+  - [ ] Crear la vista bilingüe optimizada para móviles (Banner, QR, Stamps de estatus).
+- [ ] **Onboarding de Choferes:**
+  - [ ] Crear flujo `truckready.com/go` con acceso por código de 6 dígitos.
+  - [ ] Implementar captura de cámara para CDL y Medical Card con guías de encuadre.
+- [ ] **Reporte PDF Pro:**
+  - [ ] Ajustar el generador de PDF para que use el estilo oficial (Bordes 2px, Sellos de validación).
+
+## Pendientes de copy comercial
+- [x] Sustituir lenguaje de beta por un tono de autoridad operativa en la landing y el formulario principal.
+- [ ] Definir version final del naming comercial: Programa Fundador, Charter Members o equivalente.
+- [ ] Validar claims regulatorios/comerciales para evitar mensajes que no puedan sostenerse.
+
 ## Bloqueos posibles del usuario
 - Cuenta de Supabase
 - Cuenta de Vercel
